@@ -159,7 +159,7 @@ for i in range(e):
             labels = labels.to(device)
 
             t0 = time.time()
-
+            print("ACTUAL INPUT SHAPE:", images.shape)
             labelPred = model(images)
 
             loss = crit(
