@@ -18,10 +18,10 @@ class Convs3D(nn.Module):
 
 #h
 class encoder3D(nn.Module):
-    def __init__(self, inChannels, outChannels):
+    def __init__(self, inChannels, outChannels, pool_kernel=(2, 2, 2)):
         super().__init__()
         self.conv = Convs3D(inChannels, outChannels)
-        self.pool = nn.MaxPool3d(2, 2)
+        self.pool = nn.MaxPool3d(pool_kernel, pool_kernel)
 
     def forward(self, image):
         down = self.conv(image)
@@ -30,9 +30,14 @@ class encoder3D(nn.Module):
 
 
 class decoder3D(nn.Module):
-    def __init__(self, inChannels, outChannels):
+    def __init__(self, inChannels, outChannels, up_kernel=(2, 2, 2)):
         super().__init__()
-        self.up = nn.ConvTranspose3d(inChannels, outChannels, 2, 2)
+        self.up = nn.ConvTranspose3d(
+            inChannels,
+            outChannels,
+            up_kernel,
+            up_kernel
+        )
         self.conv = Convs3D(outChannels * 2, outChannels)
 
     def forward(self, image, connection):
@@ -57,11 +62,11 @@ class uNet3D(nn.Module):
         self.downConv1 = encoder3D(inChannels, 16)
         self.downConv2 = encoder3D(16, 32)
         self.downConv3 = encoder3D(32, 64)
-        self.downConv4 = encoder3D(64, 128)
+        self.downConv4 = encoder3D(64, 128, pool_kernel=(1, 2, 2))
 
         self.bottleNeck = Convs3D(128, 256)
 
-        self.upConv1 = decoder3D(256, 128)
+        self.upConv1 = decoder3D(256, 128, up_kernel=(1, 2, 2))
         self.upConv2 = decoder3D(128, 64)
         self.upConv3 = decoder3D(64, 32)
         self.upConv4 = decoder3D(32, 16)
