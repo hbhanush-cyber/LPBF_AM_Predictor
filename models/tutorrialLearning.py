@@ -22,6 +22,29 @@ from cylinderDataSet import CylinderDataset
 
 matplotlib.use('Agg')
 
+
+class DiceBCELoss(nn.Module):
+    def __init__(self, pos_weight=None, dice_weight=1.0, bce_weight=1.0, smooth=1.0):
+        super().__init__()
+        self.bce = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+        self.dice_weight = dice_weight
+        self.bce_weight = bce_weight
+        self.smooth = smooth
+
+    def forward(self, logits, targets):
+        bce_loss = self.bce(logits, targets)
+
+        probs = torch.sigmoid(logits)
+        probs_flat = probs.view(probs.size(0), -1)
+        targets_flat = targets.view(targets.size(0), -1)
+
+        intersection = (probs_flat * targets_flat).sum(dim=1)
+        dice_score = (2. * intersection + self.smooth) / (
+            probs_flat.sum(dim=1) + targets_flat.sum(dim=1) + self.smooth
+        )
+        dice_loss = 1 - dice_score.mean()
+
+        return self.bce_weight * bce_loss + self.dice_weight * dice_loss
 ##chnage so i can commit
 
 if torch.cuda.is_available():
@@ -104,16 +127,9 @@ print(len(test_loader))
 model = uNet(4, 1).to(device)
 
 pos_weight = torch.tensor([30.0], device=device)
+crit = DiceBCELoss(pos_weight=pos_weight, dice_weight=1.0, bce_weight=1.0)
 
-crit = nn.BCEWithLogitsLoss(
-    pos_weight=pos_weight
-)
-
-optim = torch.optim.Adam(
-    model.parameters(),
-    lr=0.0001
-)
-
+optim = torch.optim.Adam(model.parameters(),lr=0.0001)
 
 startTime = time.time()
 
