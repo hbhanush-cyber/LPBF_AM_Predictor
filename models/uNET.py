@@ -6,7 +6,7 @@ from torchvision import datasets
 from torchvision import transforms
 from torchvision.utils import make_grid
 
-from torchinfo import summary
+
 
 
 
