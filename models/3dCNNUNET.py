@@ -16,7 +16,7 @@ class Convs3D(nn.Module):
         image = F.relu(self.bn2(self.conv2(image)))
         return image
 
-
+#h
 class encoder3D(nn.Module):
     def __init__(self, inChannels, outChannels):
         super().__init__()

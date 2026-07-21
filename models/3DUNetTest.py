@@ -24,7 +24,7 @@ from cylinderDataSet import CylinderDataset
 
 matplotlib.use('Agg')
 
-
+#g
 class DiceBCELoss(nn.Module):
     def __init__(self, pos_weight=None, dice_weight=1.0, bce_weight=1.0, smooth=1.0):
         super().__init__()
