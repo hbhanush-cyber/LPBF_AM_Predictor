@@ -5,7 +5,7 @@ from torch.utils.data import Dataset
 
 class CylinderDataset3D(Dataset):
 
-    def __init__(self, dataset, window=10):
+    def __init__(self, dataset, window=16):
         self.window = window
         self.X = []
         self.Y = []
