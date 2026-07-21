@@ -15,8 +15,8 @@ import h5py
 import cv2
 from pathlib import Path
 import random
-from 3dCNNUNET import uNet3D
-from 3DCylinderDataset import CylinderDataset3D
+from CNNUNET3D import uNet3D
+from CylinderDataset3D import CylinderDataset3D
 
 from uNET import Convs, encoder, decoder, uNet
 from basicCNN import CNN
