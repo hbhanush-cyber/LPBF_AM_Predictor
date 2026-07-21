@@ -117,7 +117,7 @@ optim = torch.optim.Adam(
 
 startTime = time.time()
 
-e = 5
+e = 300
 
 trainLoss = []
 testLoss = []
