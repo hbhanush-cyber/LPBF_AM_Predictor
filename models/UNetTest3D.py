@@ -24,9 +24,9 @@ from cylinderDataSet import CylinderDataset
 
 matplotlib.use('Agg')
 
-#g
+
 class DiceBCELoss(nn.Module):
-    def __init__(self, pos_weight=None, dice_weight=1.0, bce_weight=1.0, smooth=1.0):
+    def __init__(self, pos_weight=None, dice_weight=1.5, bce_weight=1.0, smooth=1.0):
         super().__init__()
         self.bce = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
         self.dice_weight = dice_weight
@@ -69,6 +69,7 @@ else:
 trainingDataFile = DATA_DIR / "layers525-650CYLINDER24.pt"
 trainingDataFile1 = DATA_DIR / "layers525-650CYLINDER48.pt"
 trainingDataFile2 = DATA_DIR / "layers525-650CYLINDER40.pt"
+trainingDataFile3 = DATA_DIR / "layers525-650CYLINDER8.pt"
 testingDataFile = DATA_DIR / "newTestNoV2real.pt"
 
 
@@ -84,6 +85,11 @@ dataset2 = CylinderDataset3D(
     torch.load(trainingDataFile2, map_location="cpu")
 )
 
+dataset3 = CylinderDataset3D(
+    torch.load(trainingDataFile3, map_location="cpu")
+)
+
+
 testData = CylinderDataset3D(
     torch.load(testingDataFile, map_location="cpu")
 )
@@ -97,6 +103,12 @@ train_loader24 = DataLoader(
 
 train_loader40 = DataLoader(
     dataset2,
+    batch_size=16,
+    shuffle=True
+)
+
+train_loader8 = DataLoader(
+    dataset3,
     batch_size=16,
     shuffle=True
 )
@@ -151,7 +163,7 @@ for i in range(e):
 
     trainC = 0
 
-    for loader in [train_loader24, train_loader48]:
+    for loader in [train_loader24, train_loader48, train_loader40, train_loader8]:
 
         for b, (images, labels) in enumerate(loader):
 
@@ -159,7 +171,7 @@ for i in range(e):
             labels = labels.to(device)
 
             t0 = time.time()
-            print("ACTUAL INPUT SHAPE:", images.shape)
+
             labelPred = model(images)
 
             loss = crit(
@@ -295,153 +307,17 @@ with torch.no_grad():
 testImages = testImages.cpu()
 testLabels = testLabels.cpu()
 
-ir1 = testImages[0, 0].numpy()
-ir2 = testImages[0, 1].numpy()
-ir3 = testImages[0, 2].numpy()
-v1 = testImages[0, 3].numpy()
+# testImages shape: (B, C=4, D=5, H, W) -- take the current layer (last in depth window)
+ir1 = testImages[0, 0, -1].numpy()
+ir2 = testImages[0, 1, -1].numpy()
+ir3 = testImages[0, 2, -1].numpy()
+v1 = testImages[0, 3, -1].numpy()
 
-groundTruth = testLabels[0, 0].numpy()
+groundTruth = testLabels[0, 0].numpy()  # unchanged: label is still (B, 1, H, W)
 
 prediction = prediction.cpu()
 
-prediction = prediction[0, 0].numpy()
-
-
-binaryPrediction = (
-    prediction > 0.5
-).astype(float)
-
-
-intersection = np.logical_and(
-    binaryPrediction,
-    groundTruth
-).sum()
-
-union = np.logical_or(
-    binaryPrediction,
-    groundTruth
-).sum()
-
-
-precision = intersection / (
-    binaryPrediction.sum() + 1e-8
-)
-
-recall = intersection / (
-    groundTruth.sum() + 1e-8
-)
-
-iou = intersection / (
-    union + 1e-8
-)
-
-f1 = 2 * precision * recall / (
-    precision + recall + 1e-8
-)
-
-pixelAccuracy = (
-    binaryPrediction == groundTruth
-).mean()
-
-
-plt.figure(figsize=(24, 12))
-
-
-plt.subplot(2, 4, 1)
-plt.imshow(ir1, cmap="hot")
-plt.title("IR Channel 0")
-plt.colorbar()
-
-
-plt.subplot(2, 4, 2)
-plt.imshow(ir2, cmap="hot")
-plt.title("IR Channel 1")
-plt.colorbar()
-
-
-plt.subplot(2, 4, 3)
-plt.imshow(ir3, cmap="hot")
-plt.title("IR Channel 2")
-plt.colorbar()
-
-
-plt.subplot(2, 4, 4)
-plt.imshow(v1, cmap="magma")
-plt.title("Visible Light 1")
-plt.colorbar()
-
-
-plt.subplot(2, 4, 5)
-plt.imshow(groundTruth, cmap="gray")
-plt.title("Ground Truth XCT")
-plt.colorbar()
-
-
-plt.subplot(2, 4, 6)
-plt.imshow(binaryPrediction, cmap="gray")
-plt.title("Binary Prediction")
-
-
-plt.subplot(2, 4, 7)
-plt.imshow(prediction, cmap="viridis")
-plt.title("CNN Prediction")
-plt.colorbar()
-
-
-plt.subplot(2, 4, 8)
-plt.axis("off")
-
-stats_text = (
-    f"Precision: {precision:.4f}\n"
-    f"Recall:    {recall:.4f}\n"
-    f"IoU:       {iou:.4f}\n"
-    f"F1:        {f1:.4f}\n"
-    f"Pixel Acc: {pixelAccuracy:.4f}"
-)
-
-plt.text(
-    0.1,
-    0.5,
-    stats_text,
-    fontsize=16,
-    family="monospace",
-    va="center"
-)
-
-plt.title("Test Metrics")
-
-plt.tight_layout()
-
-plt.savefig(
-    "prediction_overview.png",
-    dpi=150
-)
-
-plt.close()
-
-print("im doneee")
-
-
-N = 6
-
-THRESHOLD = 0.5
-
-model.eval()
-
-totalTrain = len(dataset)
-
-randomIndices = random.sample(
-    range(totalTrain),
-    N
-)
-
-
-fig, axes = plt.subplots(
-    3,
-    N,
-    figsize=(4 * N, 12)
-)
-
+prediction = prediction[0, 0].numpy()  # unchanged: model output squeezed back to (B, 1, H, W)
 
 with torch.no_grad():
 
@@ -449,7 +325,7 @@ with torch.no_grad():
 
         image, label = dataset[idx]
 
-        imageBatch = image.unsqueeze(0).to(device)
+        imageBatch = image.unsqueeze(0).to(device)  # (1, C, D, H, W) -- unchanged, correct for 3D model input
 
         pred = torch.sigmoid(
             model(imageBatch)
@@ -459,122 +335,16 @@ with torch.no_grad():
             pred > THRESHOLD
         ).float()
 
-        gt = label[0].numpy()
+        gt = label[0].numpy()  # unchanged: label is (1, H, W)
 
         predRaw = (
             pred[0, 0]
             .cpu()
             .numpy()
-        )
+        )  # unchanged: model output already squeezed to (B, 1, H, W)
 
         predBinary = (
             binPred[0, 0]
             .cpu()
             .numpy()
         )
-
-
-        axes[0, col].imshow(
-            gt,
-            cmap="gray"
-        )
-
-        axes[0, col].set_title(
-            f"GT (idx {idx})"
-        )
-
-        axes[0, col].axis("off")
-
-
-        axes[1, col].imshow(
-            predRaw,
-            cmap="viridis"
-        )
-
-        axes[1, col].set_title(
-            "Raw Prediction"
-        )
-
-        axes[1, col].axis("off")
-
-
-        axes[2, col].imshow(
-            predBinary,
-            cmap="gray"
-        )
-
-        axes[2, col].set_title(
-            f"Binary t={THRESHOLD}"
-        )
-
-        axes[2, col].axis("off")
-
-
-plt.tight_layout()
-
-plt.savefig(
-    f"random_train_layers_t{THRESHOLD}.png",
-    dpi=150
-)
-
-plt.close()
-
-
-print(
-    f"Saved random_train_layers_t{THRESHOLD}.png"
-)
-
-print(
-    f"Sampled indices: {randomIndices}"
-)
-
-
-plt.figure(figsize=(12, 5))
-
-
-plt.subplot(1, 2, 1)
-
-plt.plot(trainLoss)
-
-plt.title(
-    "Train Loss"
-)
-
-plt.xlabel(
-    "Training Dataset"
-)
-
-plt.ylabel(
-    "Loss"
-)
-
-
-plt.subplot(1, 2, 2)
-
-plt.plot(testLoss)
-
-plt.title(
-    "Test Loss per Batch"
-)
-
-plt.xlabel(
-    "Batch"
-)
-
-plt.ylabel(
-    "Loss"
-)
-
-
-plt.tight_layout()
-
-plt.savefig(
-    "loss_curves.png"
-)
-
-plt.close()
-
-
-print(
-    "Saved loss_curves.png"
-)
