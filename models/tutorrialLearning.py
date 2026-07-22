@@ -24,7 +24,7 @@ matplotlib.use('Agg')
 
 
 class DiceBCELoss(nn.Module):
-    def __init__(self, pos_weight=None, dice_weight=1.0, bce_weight=1.0, smooth=1.0):
+    def __init__(self, pos_weight=None, dice_weight=1.0, bce_weight=0.5, smooth=1.0):
         super().__init__()
         self.bce = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
         self.dice_weight = dice_weight
