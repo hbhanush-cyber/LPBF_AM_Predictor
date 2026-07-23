@@ -140,7 +140,12 @@ print(len(test_loader))
 
 model = uNet3D(4, 1).to(device)
 
-pos_weight = torch.tensor([30.0], device=device)
+total_pos = sum(ds.Y[i].sum().item() for ds in [dataset, dataset1, dataset2, dataset3] for i in range(len(ds)))
+total_pixels = sum(ds.Y[i].numel() for ds in [dataset, dataset1, dataset2, dataset3] for i in range(len(ds)))
+pos_ratio = total_pos / total_pixels
+pos_weight = torch.tensor([(1 - pos_ratio) / pos_ratio], device=device)
+print(f"Computed pos_weight: {pos_weight.item():.2f}")
+
 crit = DiceBCELoss(pos_weight=pos_weight, dice_weight=1.0, bce_weight=1.0)
 
 optim = torch.optim.Adam(model.parameters(),lr=0.0001)
