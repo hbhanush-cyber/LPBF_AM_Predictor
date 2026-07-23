@@ -1,58 +1,204 @@
 import torch
 import torch.nn.functional as F
 from torch.utils.data import Dataset
+import random
 
 
 class CylinderDataset3D(Dataset):
 
-    def __init__(self, dataset, window=10):
+    def __init__(
+        self,
+        dataset,
+        window=10,
+        augment=False,
+        max_shift=10
+    ):
 
         self.window = window
+        self.augment = augment
+        self.max_shift = max_shift
+
         self.X = []
         self.Y = []
 
-        # ==========================================
+        # =====================================================
         # PAD ALL 2D LAYERS
-        # ==========================================
+        # =====================================================
 
-        for image, label in zip(dataset["X"], dataset["Y"]):
+        for image, label in zip(
+            dataset["X"],
+            dataset["Y"]
+        ):
 
-            # image: (C, H, W)
-            # label: (1, H, W)
+            # image:
+            # (C, H, W)
+
+            # label:
+            # (1, H, W)
 
             h, w = image.shape[1:]
 
+            # -------------------------------------------------
             # Make H and W divisible by 16
-            new_h = ((h + 15) // 16) * 16
-            new_w = ((w + 15) // 16) * 16
+            # -------------------------------------------------
+
+            new_h = (
+                (h + 15) // 16
+            ) * 16
+
+            new_w = (
+                (w + 15) // 16
+            ) * 16
 
             pad_h = new_h - h
             pad_w = new_w - w
 
-            # Pad spatial dimensions
+            # -------------------------------------------------
+            # Pad image
+            # -------------------------------------------------
+
             image = F.pad(
                 image,
-                (0, pad_w, 0, pad_h)
+                (
+                    0,
+                    pad_w,
+                    0,
+                    pad_h
+                )
             )
+
+            # -------------------------------------------------
+            # Pad label
+            # -------------------------------------------------
 
             label = F.pad(
                 label,
-                (0, pad_w, 0, pad_h)
+                (
+                    0,
+                    pad_w,
+                    0,
+                    pad_h
+                )
             )
 
-            self.X.append(image)
-            self.Y.append(label)
+            self.X.append(
+                image.float()
+            )
+
+            self.Y.append(
+                label.float()
+            )
 
 
     def __len__(self):
+
         return len(self.X)
 
 
-    def __getitem__(self, idx):
+    def shift_tensor(
+        self,
+        x,
+        dx,
+        dy,
+        fill=0.0
+    ):
 
-        # ==========================================
-        # GET WINDOW OF LAYERS (image input only)
-        # ==========================================
+        """
+        Shift the final two dimensions (H, W).
+
+        Works for:
+
+            image:
+            (C, H, W)
+
+            volume:
+            (C, D, H, W)
+
+            label:
+            (1, H, W)
+        """
+
+        H = x.shape[-2]
+        W = x.shape[-1]
+
+        shifted = torch.full_like(
+            x,
+            fill
+        )
+
+        # =====================================================
+        # SOURCE COORDINATES
+        # =====================================================
+
+        src_y0 = max(
+            0,
+            -dy
+        )
+
+        src_y1 = min(
+            H,
+            H - dy
+        )
+
+        src_x0 = max(
+            0,
+            -dx
+        )
+
+        src_x1 = min(
+            W,
+            W - dx
+        )
+
+        # =====================================================
+        # DESTINATION COORDINATES
+        # =====================================================
+
+        dst_y0 = max(
+            0,
+            dy
+        )
+
+        dst_y1 = min(
+            H,
+            H + dy
+        )
+
+        dst_x0 = max(
+            0,
+            dx
+        )
+
+        dst_x1 = min(
+            W,
+            W + dx
+        )
+
+        # =====================================================
+        # COPY
+        # =====================================================
+
+        shifted[
+            ...,
+            dst_y0:dst_y1,
+            dst_x0:dst_x1
+        ] = x[
+            ...,
+            src_y0:src_y1,
+            src_x0:src_x1
+        ]
+
+        return shifted
+
+
+    def __getitem__(
+        self,
+        idx
+    ):
+
+        # =====================================================
+        # GET WINDOW
+        # =====================================================
 
         start = max(
             idx - (self.window - 1),
@@ -60,16 +206,15 @@ class CylinderDataset3D(Dataset):
         )
 
         indices = list(
-            range(start, idx + 1)
+            range(
+                start,
+                idx + 1
+            )
         )
 
-
-        # ==========================================
+        # =====================================================
         # PAD BEGINNING OF BUILD
-        # ==========================================
-
-        # If we don't have enough previous layers,
-        # repeat the earliest available layer.
+        # =====================================================
 
         while len(indices) < self.window:
 
@@ -78,44 +223,73 @@ class CylinderDataset3D(Dataset):
                 indices[0]
             )
 
-
-        # ==========================================
-        # CREATE 3D INPUT
-        # ==========================================
-
-        # Each frame:
-        # (C, H, W)
+        # =====================================================
+        # CREATE 3D VOLUME
+        # =====================================================
 
         frames = [
             self.X[i]
             for i in indices
         ]
 
-        # Stack along depth dimension
-        #
-        # Before:
-        # window × (C, H, W)
-        #
-        # After:
-        # (C, D, H, W)
-
         volume = torch.stack(
             frames,
             dim=1
         )
 
+        # volume:
+        # (C, D, H, W)
 
-        # ==========================================
-        # LABEL: CURRENT LAYER ONLY
-        # ==========================================
+        # =====================================================
+        # CURRENT LAYER TARGET
+        # =====================================================
 
-        # The model should only ever be graded on
-        # predicting the CURRENT layer (idx), not
-        # the whole window -- earlier positions in
-        # the window would let the model "see" future
-        # layers relative to that position, which is
-        # not the task we want it learning.
+        label = self.Y[idx]
 
-        label = self.Y[idx]  # (1, H, W)
+        # label:
+        # (1, H, W)
+
+        # =====================================================
+        # RANDOM SPATIAL TRANSLATION
+        # =====================================================
+
+        if self.augment:
+
+            dx = random.randint(
+                -self.max_shift,
+                self.max_shift
+            )
+
+            dy = random.randint(
+                -self.max_shift,
+                self.max_shift
+            )
+
+            # -------------------------------------------------
+            # IMPORTANT:
+            #
+            # The SAME dx,dy is applied to every layer.
+            #
+            # This preserves all spatial relationships
+            # between the 10 layers.
+            # -------------------------------------------------
+
+            volume = self.shift_tensor(
+                volume,
+                dx=dx,
+                dy=dy,
+                fill=0.0
+            )
+
+            # -------------------------------------------------
+            # Apply EXACT SAME transformation to target
+            # -------------------------------------------------
+
+            label = self.shift_tensor(
+                label,
+                dx=dx,
+                dy=dy,
+                fill=0.0
+            )
 
         return volume, label

@@ -74,26 +74,53 @@ testingDataFile = DATA_DIR / "newTestNoV2real.pt"
 
 
 dataset = CylinderDataset3D(
-    torch.load(trainingDataFile, map_location="cpu")
+    torch.load(
+        trainingDataFile,
+        map_location="cpu"
+    ),
+    window=10,
+    augment=True,
+    max_shift=5
 )
 
 dataset1 = CylinderDataset3D(
-    torch.load(trainingDataFile1, map_location="cpu")
+    torch.load(
+        trainingDataFile1,
+        map_location="cpu"
+    ),
+    window=10,
+    augment=True,
+    max_shift=5
 )
 
 dataset2 = CylinderDataset3D(
-    torch.load(trainingDataFile2, map_location="cpu")
+    torch.load(
+        trainingDataFile2,
+        map_location="cpu"
+    ),
+    window=10,
+    augment=True,
+    max_shift=5
 )
 
 dataset3 = CylinderDataset3D(
-    torch.load(trainingDataFile3, map_location="cpu")
+    torch.load(
+        trainingDataFile3,
+        map_location="cpu"
+    ),
+    window=10,
+    augment=True,
+    max_shift=5
 )
-
 
 testData = CylinderDataset3D(
-    torch.load(testingDataFile, map_location="cpu")
+    torch.load(
+        testingDataFile,
+        map_location="cpu"
+    ),
+    window=10,
+    augment=False
 )
-
 
 train_loader24 = DataLoader(
     dataset,
@@ -161,6 +188,8 @@ testCorrect = []
 
 
 for i in range(e):
+
+    model.train()
 
     epochStart = time.time()
 
