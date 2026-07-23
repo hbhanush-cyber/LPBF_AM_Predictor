@@ -1,384 +1,1204 @@
+import time
+from pathlib import Path
+
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-from torch.utils.data import Dataset, DataLoader, ConcatDataset
-from torchvision import datasets
-from torchvision import transforms
-from torchvision.utils import make_grid
-import numpy as np
-import pandas as pd
-from sklearn.metrics import confusion_matrix
-import matplotlib
-import matplotlib.pyplot as plt
-import time
-import h5py
-import cv2
-from pathlib import Path
-import random
+from torch.utils.data import DataLoader
+
 from CNNUNET3D import uNet3D
 from CylinderDataset3D import CylinderDataset3D
 
-from uNET import Convs, encoder, decoder, uNet
-from basicCNN import CNN
-from cylinderDataSet import CylinderDataset
 
-matplotlib.use('Agg')
-
+# ==========================================================
+# LOSS FUNCTION
+# ==========================================================
 
 class DiceBCELoss(nn.Module):
-    def __init__(self, pos_weight=None, dice_weight=1.5, bce_weight=1.0, smooth=1.0):
+
+    def __init__(
+        self,
+        pos_weight=None,
+        dice_weight=1.0,
+        bce_weight=1.0,
+        smooth=1.0
+    ):
         super().__init__()
-        self.bce = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+
+        self.bce = nn.BCEWithLogitsLoss(
+            pos_weight=pos_weight
+        )
+
         self.dice_weight = dice_weight
         self.bce_weight = bce_weight
         self.smooth = smooth
 
+
     def forward(self, logits, targets):
-        bce_loss = self.bce(logits, targets)
 
-        probs = torch.sigmoid(logits)
-        probs_flat = probs.view(probs.size(0), -1)
-        targets_flat = targets.view(targets.size(0), -1)
+        # ------------------------------------------
+        # BCE LOSS
+        # ------------------------------------------
 
-        intersection = (probs_flat * targets_flat).sum(dim=1)
-        dice_score = (2. * intersection + self.smooth) / (
-            probs_flat.sum(dim=1) + targets_flat.sum(dim=1) + self.smooth
+        bce_loss = self.bce(
+            logits,
+            targets
         )
-        dice_loss = 1 - dice_score.mean()
 
-        return self.bce_weight * bce_loss + self.dice_weight * dice_loss
 
+        # ------------------------------------------
+        # DICE LOSS
+        # ------------------------------------------
+
+        probs = torch.sigmoid(
+            logits
+        )
+
+        probs_flat = probs.view(
+            probs.size(0),
+            -1
+        )
+
+        targets_flat = targets.view(
+            targets.size(0),
+            -1
+        )
+
+        intersection = (
+            probs_flat * targets_flat
+        ).sum(dim=1)
+
+        dice_score = (
+            2.0 * intersection
+            + self.smooth
+        ) / (
+            probs_flat.sum(dim=1)
+            + targets_flat.sum(dim=1)
+            + self.smooth
+        )
+
+        dice_loss = (
+            1.0 - dice_score.mean()
+        )
+
+
+        # ------------------------------------------
+        # COMBINED LOSS
+        # ------------------------------------------
+
+        total_loss = (
+            self.bce_weight * bce_loss
+            + self.dice_weight * dice_loss
+        )
+
+        return total_loss
+
+
+# ==========================================================
+# DEVICE
+# ==========================================================
 
 if torch.cuda.is_available():
-    device = torch.device("cuda")
-else:
-    device = torch.device("cpu")
 
-print(f"Using device: {device}")
+    device = torch.device(
+        "cuda"
+    )
+
+else:
+
+    device = torch.device(
+        "cpu"
+    )
+
+
+print(
+    f"Using device: {device}"
+)
+
 
 if device.type == "cuda":
-    print(f"GPU: {torch.cuda.get_device_name(0)}")
 
+    print(
+        f"GPU: "
+        f"{torch.cuda.get_device_name(0)}"
+    )
+
+
+# ==========================================================
+# SETTINGS
+# ==========================================================
+
+WINDOW = 10
+
+BATCH_SIZE = 32
+
+MAX_SHIFT = 5
+
+EPOCHS = 100
+
+LEARNING_RATE = 1e-4
+
+NUM_WORKERS = 2
+
+CHECKPOINT_INTERVAL = 10
+
+
+# ==========================================================
+# DATA DIRECTORY
+# ==========================================================
 
 if Path("/content").exists():
-    DATA_DIR = Path("/content/LBPF_ML_AM/models")
+
+    DATA_DIR = Path(
+        "/content/LBPF_ML_AM/models"
+    )
+
 else:
-    DATA_DIR = Path(r"C:\Users\hrida\PycharmProjects\LBPF_ML_AM\models")
+
+    DATA_DIR = Path(
+        r"C:\Users\hrida\PycharmProjects\LBPF_ML_AM\models"
+    )
 
 
-trainingDataFile = DATA_DIR / "layers525-650CYLINDER24.pt"
-trainingDataFile1 = DATA_DIR / "layers525-650CYLINDER48.pt"
-trainingDataFile2 = DATA_DIR / "layers525-650CYLINDER40.pt"
-trainingDataFile3 = DATA_DIR / "layers525-650CYLINDER8.pt"
-testingDataFile = DATA_DIR / "newTestNoV2real.pt"
+# ==========================================================
+# DATA FILES
+# ==========================================================
 
-
-dataset = CylinderDataset3D(
-    torch.load(
-        trainingDataFile,
-        map_location="cpu"
-    ),
-    window=10,
-    augment=True,
-    max_shift=5
+trainingDataFile = (
+    DATA_DIR
+    / "layers525-650CYLINDER24.pt"
 )
 
-dataset1 = CylinderDataset3D(
-    torch.load(
-        trainingDataFile1,
-        map_location="cpu"
-    ),
-    window=10,
-    augment=True,
-    max_shift=5
+trainingDataFile1 = (
+    DATA_DIR
+    / "layers525-650CYLINDER48.pt"
 )
 
-dataset2 = CylinderDataset3D(
-    torch.load(
-        trainingDataFile2,
-        map_location="cpu"
-    ),
-    window=10,
-    augment=True,
-    max_shift=5
+trainingDataFile2 = (
+    DATA_DIR
+    / "layers525-650CYLINDER40.pt"
 )
 
-dataset3 = CylinderDataset3D(
-    torch.load(
-        trainingDataFile3,
-        map_location="cpu"
-    ),
-    window=10,
-    augment=True,
-    max_shift=5
+trainingDataFile3 = (
+    DATA_DIR
+    / "layers525-650CYLINDER8.pt"
 )
+
+testingDataFile = (
+    DATA_DIR
+    / "newTestNoV2real.pt"
+)
+
+
+# ==========================================================
+# LOAD RAW DATA
+# ==========================================================
+
+print(
+    "\nLoading datasets..."
+)
+
+
+rawData24 = torch.load(
+    trainingDataFile,
+    map_location="cpu"
+)
+
+rawData48 = torch.load(
+    trainingDataFile1,
+    map_location="cpu"
+)
+
+rawData40 = torch.load(
+    trainingDataFile2,
+    map_location="cpu"
+)
+
+rawData8 = torch.load(
+    trainingDataFile3,
+    map_location="cpu"
+)
+
+rawTestData = torch.load(
+    testingDataFile,
+    map_location="cpu"
+)
+
+
+# ==========================================================
+# CREATE TRAINING DATASETS
+#
+# Each cylinder remains a separate dataset because
+# the original cylinders have different spatial dimensions.
+#
+# Shift augmentation is applied only to training data.
+# ==========================================================
+
+dataset24 = CylinderDataset3D(
+    rawData24,
+    window=WINDOW,
+    augment=True,
+    max_shift=MAX_SHIFT
+)
+
+dataset48 = CylinderDataset3D(
+    rawData48,
+    window=WINDOW,
+    augment=True,
+    max_shift=MAX_SHIFT
+)
+
+dataset40 = CylinderDataset3D(
+    rawData40,
+    window=WINDOW,
+    augment=True,
+    max_shift=MAX_SHIFT
+)
+
+dataset8 = CylinderDataset3D(
+    rawData8,
+    window=WINDOW,
+    augment=True,
+    max_shift=MAX_SHIFT
+)
+
+
+# ==========================================================
+# CREATE TEST DATASET
+#
+# IMPORTANT:
+# No augmentation is used for testing.
+# ==========================================================
 
 testData = CylinderDataset3D(
-    torch.load(
-        testingDataFile,
-        map_location="cpu"
-    ),
-    window=10,
+    rawTestData,
+    window=WINDOW,
     augment=False
 )
 
+
+# ==========================================================
+# DATA LOADERS
+# ==========================================================
+
+loader_kwargs = {
+
+    "batch_size": BATCH_SIZE,
+
+    "num_workers": NUM_WORKERS,
+
+    "pin_memory": (
+        device.type == "cuda"
+    ),
+
+    "persistent_workers": (
+        NUM_WORKERS > 0
+    )
+}
+
+
 train_loader24 = DataLoader(
-    dataset,
-    batch_size=16,
-    shuffle=True
-)
-
-train_loader40 = DataLoader(
-    dataset2,
-    batch_size=16,
-    shuffle=True
-)
-
-train_loader8 = DataLoader(
-    dataset3,
-    batch_size=16,
-    shuffle=True
+    dataset24,
+    shuffle=True,
+    **loader_kwargs
 )
 
 
 train_loader48 = DataLoader(
-    dataset1,
-    batch_size=16,
-    shuffle=True
+    dataset48,
+    shuffle=True,
+    **loader_kwargs
 )
+
+
+train_loader40 = DataLoader(
+    dataset40,
+    shuffle=True,
+    **loader_kwargs
+)
+
+
+train_loader8 = DataLoader(
+    dataset8,
+    shuffle=True,
+    **loader_kwargs
+)
+
 
 test_loader = DataLoader(
+
     testData,
-    batch_size=16,
-    shuffle=False
+
+    batch_size=BATCH_SIZE,
+
+    shuffle=False,
+
+    num_workers=NUM_WORKERS,
+
+    pin_memory=(
+        device.type == "cuda"
+    ),
+
+    persistent_workers=(
+        NUM_WORKERS > 0
+    )
 )
 
 
-print(len(dataset))
-print(len(dataset1))
-print(len(dataset2))
-print(len(testData))
+# ==========================================================
+# DATASET INFORMATION
+# ==========================================================
 
-print(len(train_loader24))
-print(len(train_loader48))
-print(len(train_loader40))
-print(len(test_loader))
+print(
+    "\nDataset sizes:"
+)
+
+print(
+    f"Cylinder 24: "
+    f"{len(dataset24)} layers"
+)
+
+print(
+    f"Cylinder 48: "
+    f"{len(dataset48)} layers"
+)
+
+print(
+    f"Cylinder 40: "
+    f"{len(dataset40)} layers"
+)
+
+print(
+    f"Cylinder 8: "
+    f"{len(dataset8)} layers"
+)
+
+print(
+    f"Test: "
+    f"{len(testData)} layers"
+)
 
 
-model = uNet3D(4, 1).to(device)
+print(
+    "\nNumber of batches:"
+)
 
-total_pos = sum(ds.Y[i].sum().item() for ds in [dataset, dataset1, dataset2, dataset3] for i in range(len(ds)))
-total_pixels = sum(ds.Y[i].numel() for ds in [dataset, dataset1, dataset2, dataset3] for i in range(len(ds)))
-pos_ratio = total_pos / total_pixels
-pos_weight = torch.tensor([(1 - pos_ratio) / pos_ratio], device=device)
-print(f"Computed pos_weight: {pos_weight.item():.2f}")
+print(
+    f"Cylinder 24: "
+    f"{len(train_loader24)}"
+)
 
-crit = DiceBCELoss(pos_weight=pos_weight, dice_weight=1.0, bce_weight=1.0)
+print(
+    f"Cylinder 48: "
+    f"{len(train_loader48)}"
+)
 
-optim = torch.optim.Adam(model.parameters(),lr=0.0001)
+print(
+    f"Cylinder 40: "
+    f"{len(train_loader40)}"
+)
+
+print(
+    f"Cylinder 8: "
+    f"{len(train_loader8)}"
+)
+
+print(
+    f"Test: "
+    f"{len(test_loader)}"
+)
+
+
+# ==========================================================
+# CREATE MODEL
+#
+# Input:
+#   4 channels
+#   10 previous/current layers
+#
+# Shape:
+#   (B, 4, 10, H, W)
+#
+# Output:
+#   (B, 1, H, W)
+# ==========================================================
+
+model = uNet3D(
+    4,
+    1,
+    depth=WINDOW
+).to(device)
+
+
+print(
+    "\nModel created."
+)
+
+print(
+    f"Input channels: 4"
+)
+
+print(
+    f"3D window depth: {WINDOW}"
+)
+
+
+# ==========================================================
+# CALCULATE CLASS IMBALANCE
+#
+# The shift augmentation does not change the number
+# of positive pixels, so calculating pos_weight from
+# the original labels is valid.
+# ==========================================================
+
+training_datasets = [
+
+    dataset24,
+
+    dataset48,
+
+    dataset40,
+
+    dataset8
+
+]
+
+
+total_pos = 0
+
+total_pixels = 0
+
+
+for ds in training_datasets:
+
+    for i in range(
+        len(ds)
+    ):
+
+        total_pos += (
+            ds.Y[i]
+            .sum()
+            .item()
+        )
+
+        total_pixels += (
+            ds.Y[i]
+            .numel()
+        )
+
+
+pos_ratio = (
+    total_pos
+    / total_pixels
+)
+
+
+pos_weight_value = (
+    (1.0 - pos_ratio)
+    / pos_ratio
+)
+
+
+pos_weight = torch.tensor(
+
+    [pos_weight_value],
+
+    dtype=torch.float32,
+
+    device=device
+
+)
+
+
+print(
+    f"\nPositive pixel ratio: "
+    f"{pos_ratio:.8f}"
+)
+
+print(
+    f"Computed pos_weight: "
+    f"{pos_weight.item():.2f}"
+)
+
+
+# ==========================================================
+# LOSS
+# ==========================================================
+
+crit = DiceBCELoss(
+
+    pos_weight=pos_weight,
+
+    dice_weight=1.0,
+
+    bce_weight=1.0
+
+)
+
+
+# ==========================================================
+# OPTIMIZER
+# ==========================================================
+
+optim = torch.optim.Adam(
+
+    model.parameters(),
+
+    lr=LEARNING_RATE
+
+)
+
+
+# ==========================================================
+# MIXED PRECISION
+#
+# The T4 GPU benefits from mixed precision.
+# ==========================================================
+
+if device.type == "cuda":
+
+    scaler = torch.amp.GradScaler(
+        "cuda"
+    )
+
+else:
+
+    scaler = None
+
+
+# ==========================================================
+# TRAINING SETUP
+# ==========================================================
 
 startTime = time.time()
 
-e = 300
 
 trainLoss = []
-testLoss = []
-trainCorrect = []
-testCorrect = []
 
 
-for i in range(e):
+# Keep the four loaders separate.
+#
+# This is necessary because the four cylinders have
+# different spatial dimensions.
+#
+# Each epoch still trains on every cylinder.
+
+train_loaders = [
+
+    (
+        "Cylinder24",
+        train_loader24
+    ),
+
+    (
+        "Cylinder48",
+        train_loader48
+    ),
+
+    (
+        "Cylinder40",
+        train_loader40
+    ),
+
+    (
+        "Cylinder8",
+        train_loader8
+    )
+
+]
+
+
+# ==========================================================
+# TRAINING LOOP
+# ==========================================================
+
+for epoch in range(
+    EPOCHS
+):
 
     model.train()
 
+
     epochStart = time.time()
 
-    print(f"\nStarting Epoch {i + 1}/{e}")
 
-    trainC = 0
+    epoch_loss = 0.0
 
-    for loader in [train_loader24, train_loader48, train_loader40, train_loader8]:
+    epoch_batches = 0
 
-        for b, (images, labels) in enumerate(loader):
-
-            images = images.to(device)
-            labels = labels.to(device)
-
-            t0 = time.time()
-
-            labelPred = model(images)
-
-            loss = crit(
-                labelPred,
-                labels
-            )
-
-            t1 = time.time()
-
-            pred = (
-                torch.sigmoid(labelPred) > 0.5
-            ).float()
-
-            batchCorr = (
-                pred == labels
-            ).sum()
-
-            trainC += batchCorr.item()
-
-            optim.zero_grad()
-
-            loss.backward()
-
-            t2 = time.time()
-
-            optim.step()
-
-            t3 = time.time()
-
-            if (b + 1) % 10 == 0:
-
-                print(
-                    f"Epoch {i + 1}/{e} "
-                    f"Loader Batch {b + 1}/{len(loader)} "
-                    f"Loss: {loss.item():.6f} "
-                    f"Forward: {t1 - t0:.2f}s "
-                    f"Backward: {t2 - t1:.2f}s "
-                    f"Step: {t3 - t2:.2f}s"
-                )
-
-        trainLoss.append(loss.item())
-        trainCorrect.append(trainC)
-
-    epochTime = time.time() - epochStart
 
     print(
-        f"Epoch {i + 1} completed "
-        f"in {epochTime:.2f}s"
+        "\n"
+        + "=" * 60
+    )
+
+    print(
+        f"Starting Epoch "
+        f"{epoch + 1}/{EPOCHS}"
+    )
+
+    print(
+        "=" * 60
     )
 
 
-    if (i + 1) % 50 == 0:
+    # ------------------------------------------
+    # TRAIN ON EACH CYLINDER
+    # ------------------------------------------
 
-        torch.save(
-            model.state_dict(),
-            f"checkpoint_epoch{i + 1}.pt"
-        )
+    for cylinder_name, loader in train_loaders:
+
+        cylinder_loss = 0.0
+
+        cylinder_batches = 0
+
+
+        for b, (
+            images,
+            labels
+        ) in enumerate(loader):
+
+
+            # --------------------------------------
+            # MOVE DATA TO GPU
+            # --------------------------------------
+
+            images = images.to(
+
+                device,
+
+                non_blocking=(
+                    device.type == "cuda"
+                )
+
+            )
+
+
+            labels = labels.to(
+
+                device,
+
+                non_blocking=(
+                    device.type == "cuda"
+                )
+
+            )
+
+
+            # --------------------------------------
+            # RESET GRADIENTS
+            # --------------------------------------
+
+            optim.zero_grad(
+                set_to_none=True
+            )
+
+
+            # --------------------------------------
+            # FORWARD PASS
+            # --------------------------------------
+
+            if device.type == "cuda":
+
+                with torch.amp.autocast(
+
+                    device_type="cuda",
+
+                    dtype=torch.float16
+
+                ):
+
+                    labelPred = model(
+                        images
+                    )
+
+                    loss = crit(
+
+                        labelPred,
+
+                        labels
+
+                    )
+
+
+                # ----------------------------------
+                # BACKWARD PASS
+                # ----------------------------------
+
+                scaler.scale(
+                    loss
+                ).backward()
+
+
+                scaler.step(
+                    optim
+                )
+
+
+                scaler.update()
+
+
+            else:
+
+                labelPred = model(
+                    images
+                )
+
+                loss = crit(
+
+                    labelPred,
+
+                    labels
+
+                )
+
+
+                loss.backward()
+
+
+                optim.step()
+
+
+            # --------------------------------------
+            # RECORD LOSS
+            # --------------------------------------
+
+            loss_value = (
+                loss.item()
+            )
+
+
+            epoch_loss += (
+                loss_value
+            )
+
+
+            cylinder_loss += (
+                loss_value
+            )
+
+
+            epoch_batches += 1
+
+            cylinder_batches += 1
+
+
+            # --------------------------------------
+            # PROGRESS
+            # --------------------------------------
+
+            if (
+                (b + 1) % 10 == 0
+                or
+                (b + 1) == len(loader)
+            ):
+
+                print(
+
+                    f"Epoch "
+                    f"{epoch + 1}/{EPOCHS} | "
+
+                    f"{cylinder_name} | "
+
+                    f"Batch "
+                    f"{b + 1}/{len(loader)} | "
+
+                    f"Loss: "
+                    f"{loss_value:.6f}"
+
+                )
+
+
+        # ------------------------------------------
+        # CYLINDER AVERAGE LOSS
+        # ------------------------------------------
+
+        if cylinder_batches > 0:
+
+            average_cylinder_loss = (
+
+                cylinder_loss
+                / cylinder_batches
+
+            )
+
+        else:
+
+            average_cylinder_loss = 0.0
+
 
         print(
-            f"Saved checkpoint at epoch {i + 1}"
+
+            f"{cylinder_name} "
+            f"average loss: "
+            f"{average_cylinder_loss:.6f}"
+
         )
 
 
-testC = 0
+    # ------------------------------------------
+    # EPOCH AVERAGE LOSS
+    # ------------------------------------------
 
-model.eval()
+    average_epoch_loss = (
 
-with torch.no_grad():
+        epoch_loss
+        / epoch_batches
 
-    for b, (testImages, testLabels) in enumerate(test_loader):
+    )
 
-        testImages = testImages.to(device)
-        testLabels = testLabels.to(device)
 
-        labelVal = model(testImages)
+    trainLoss.append(
 
-        predTest = (
-            torch.sigmoid(labelVal) > 0.5
-        ).float()
+        average_epoch_loss
 
-        testC += (
-            predTest == testLabels
-        ).sum().item()
+    )
 
-        lossTest = crit(
-            labelVal,
-            testLabels
+
+    epochTime = (
+
+        time.time()
+        - epochStart
+
+    )
+
+
+    print(
+
+        f"\nEpoch "
+        f"{epoch + 1}/{EPOCHS} completed"
+
+    )
+
+    print(
+
+        f"Average loss: "
+        f"{average_epoch_loss:.6f}"
+
+    )
+
+    print(
+
+        f"Epoch time: "
+        f"{epochTime:.2f} seconds"
+
+    )
+
+
+    # ------------------------------------------
+    # SAVE CHECKPOINT
+    # ------------------------------------------
+
+    if (
+
+        (epoch + 1)
+        % CHECKPOINT_INTERVAL
+        == 0
+
+    ):
+
+        checkpoint_path = (
+
+            DATA_DIR
+            / (
+                f"checkpoint_"
+                f"epoch{epoch + 1}.pt"
+            )
+
         )
 
-        testLoss.append(
-            lossTest.item()
+
+        torch.save(
+
+            model.state_dict(),
+
+            checkpoint_path
+
         )
 
-        testCorrect.append(
-            testC
+
+        print(
+
+            f"Saved checkpoint: "
+            f"{checkpoint_path}"
+
         )
 
 
-currentTime = time.time()
+# ==========================================================
+# TRAINING COMPLETE
+# ==========================================================
 
-totalTime = currentTime - startTime
+totalTime = (
+
+    time.time()
+    - startTime
+
+)
+
 
 print(
-    f"Time was: {totalTime:.2f} seconds"
+    "\n"
+    + "=" * 60
+)
+
+print(
+    "TRAINING COMPLETE"
+)
+
+print(
+    "=" * 60
+)
+
+print(
+    f"Total training time: "
+    f"{totalTime:.2f} seconds"
+)
+
+print(
+    f"Total training time: "
+    f"{totalTime / 3600:.2f} hours"
+)
+
+
+# ==========================================================
+# SAVE FINAL MODEL
+# ==========================================================
+
+final_model_path = (
+
+    DATA_DIR
+    / "final_model_e100_3dCNNUnet10layerWindow.pt"
+
 )
 
 
 torch.save(
+
     model.state_dict(),
-    "final_model_e300First3dCNNUnet10layerWindow.pt"
+
+    final_model_path
+
+)
+
+
+print(
+
+    f"Saved final model: "
+    f"{final_model_path}"
+
+)
+
+
+# ==========================================================
+# FINAL TEST EVALUATION
+#
+# No augmentation is applied to test data.
+# ==========================================================
+
+print(
+    "\n"
+    + "=" * 60
 )
 
 print(
-    "Saved final model"
+    "FINAL TEST EVALUATION"
+)
+
+print(
+    "=" * 60
 )
 
 
-with torch.no_grad():
-
-    testImages, testLabels = next(
-        iter(test_loader)
-    )
-
-    testImages = testImages.to(device)
-
-    prediction = model(testImages)
-
-    prediction = torch.sigmoid(
-        prediction
-    )
+model.eval()
 
 
-testImages = testImages.cpu()
-testLabels = testLabels.cpu()
+test_loss_total = 0.0
 
-# testImages shape: (B, C=4, D=5, H, W) -- take the current layer (last in depth window)
-ir1 = testImages[0, 0, -1].numpy()
-ir2 = testImages[0, 1, -1].numpy()
-ir3 = testImages[0, 2, -1].numpy()
-v1 = testImages[0, 3, -1].numpy()
+test_batches = 0
 
-groundTruth = testLabels[0, 0].numpy()  # unchanged: label is still (B, 1, H, W)
-
-prediction = prediction.cpu()
-
-prediction = prediction[0, 0].numpy()  # unchanged: model output squeezed back to (B, 1, H, W)
 
 with torch.no_grad():
 
-    for col, idx in enumerate(randomIndices):
+    for (
+        testImages,
+        testLabels
+    ) in test_loader:
 
-        image, label = dataset[idx]
 
-        imageBatch = image.unsqueeze(0).to(device)  # (1, C, D, H, W) -- unchanged, correct for 3D model input
+        testImages = testImages.to(
 
-        pred = torch.sigmoid(
-            model(imageBatch)
+            device,
+
+            non_blocking=(
+                device.type == "cuda"
+            )
+
         )
 
-        binPred = (
-            pred > THRESHOLD
-        ).float()
 
-        gt = label[0].numpy()  # unchanged: label is (1, H, W)
+        testLabels = testLabels.to(
 
-        predRaw = (
-            pred[0, 0]
-            .cpu()
-            .numpy()
-        )  # unchanged: model output already squeezed to (B, 1, H, W)
+            device,
 
-        predBinary = (
-            binPred[0, 0]
-            .cpu()
-            .numpy()
+            non_blocking=(
+                device.type == "cuda"
+            )
+
         )
+
+
+        # --------------------------------------
+        # FORWARD PASS
+        # --------------------------------------
+
+        if device.type == "cuda":
+
+            with torch.amp.autocast(
+
+                device_type="cuda",
+
+                dtype=torch.float16
+
+            ):
+
+                labelVal = model(
+                    testImages
+                )
+
+                lossTest = crit(
+
+                    labelVal,
+
+                    testLabels
+
+                )
+
+        else:
+
+            labelVal = model(
+
+                testImages
+
+            )
+
+            lossTest = crit(
+
+                labelVal,
+
+                testLabels
+
+            )
+
+
+        test_loss_total += (
+
+            lossTest.item()
+
+        )
+
+
+        test_batches += 1
+
+
+# ==========================================================
+# TEST LOSS
+# ==========================================================
+
+if test_batches > 0:
+
+    average_test_loss = (
+
+        test_loss_total
+        / test_batches
+
+    )
+
+else:
+
+    average_test_loss = 0.0
+
+
+print(
+
+    f"Test loss: "
+    f"{average_test_loss:.6f}"
+
+)
+
+
+# ==========================================================
+# TRAINING SUMMARY
+# ==========================================================
+
+print(
+    "\n"
+    + "=" * 60
+)
+
+print(
+    "TRAINING SUMMARY"
+)
+
+print(
+    "=" * 60
+)
+
+print(
+
+    f"Epochs trained: "
+    f"{EPOCHS}"
+
+)
+
+print(
+
+    f"Window size: "
+    f"{WINDOW}"
+
+)
+
+print(
+
+    f"Maximum training shift: "
+    f"{MAX_SHIFT} pixels"
+
+)
+
+print(
+
+    f"Batch size: "
+    f"{BATCH_SIZE}"
+
+)
+
+print(
+
+    f"Learning rate: "
+    f"{LEARNING_RATE}"
+
+)
+
+print(
+
+    f"Final training loss: "
+    f"{trainLoss[-1]:.6f}"
+
+)
+
+print(
+
+    f"Final test loss: "
+    f"{average_test_loss:.6f}"
+
+)
+
+print(
+
+    f"Final model: "
+    f"{final_model_path}"
+
+)
+
+print(
+    "=" * 60
+)
