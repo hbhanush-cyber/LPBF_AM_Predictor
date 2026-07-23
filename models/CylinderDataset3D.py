@@ -51,7 +51,7 @@ class CylinderDataset3D(Dataset):
     def __getitem__(self, idx):
 
         # ==========================================
-        # GET WINDOW OF LAYERS
+        # GET WINDOW OF LAYERS (image input only)
         # ==========================================
 
         start = max(
@@ -106,28 +106,16 @@ class CylinderDataset3D(Dataset):
 
 
         # ==========================================
-        # CREATE 3D LABEL
+        # LABEL: CURRENT LAYER ONLY
         # ==========================================
 
-        # Get the defect maps for the same
-        # layers used in the input window.
+        # The model should only ever be graded on
+        # predicting the CURRENT layer (idx), not
+        # the whole window -- earlier positions in
+        # the window would let the model "see" future
+        # layers relative to that position, which is
+        # not the task we want it learning.
 
-        label_frames = [
-            self.Y[i]
-            for i in indices
-        ]
+        label = self.Y[idx]  # (1, H, W)
 
-        # Each label:
-        # (1, H, W)
-        #
-        # Stack along depth dimension:
-        #
-        # (1, D, H, W)
-
-        label_volume = torch.stack(
-            label_frames,
-            dim=1
-        )
-
-
-        return volume, label_volume
+        return volume, label

@@ -57,7 +57,7 @@ class decoder3D(nn.Module):
 
 
 class uNet3D(nn.Module):
-    def __init__(self, inChannels, numClasses):
+    def __init__(self, inChannels, numClasses, depth=10):
         super().__init__()
         self.downConv1 = encoder3D(inChannels, 16)
         self.downConv2 = encoder3D(16, 32)
@@ -71,6 +71,8 @@ class uNet3D(nn.Module):
         self.upConv3 = decoder3D(64, 32)
         self.upConv4 = decoder3D(32, 16)
 
+        # NEW: fuse the depth axis down to 1 before the final output
+        self.depthFuse = nn.Conv3d(16, 16, kernel_size=(depth, 1, 1))
         self.out = nn.Conv3d(16, numClasses, 1)
 
     def forward(self, image):
@@ -84,7 +86,10 @@ class uNet3D(nn.Module):
         up1 = self.upConv1(bottleNeck, down4)
         up2 = self.upConv2(up1, down3)
         up3 = self.upConv3(up2, down2)
-        up4 = self.upConv4(up3, down1)
+        up4 = self.upConv4(up3, down1)   # (B, 16, D, H, W)
 
-        out = self.out(up4)
-        return out
+        fused = self.depthFuse(up4)       # (B, 16, 1, H, W) -- depth collapses to 1
+        out = self.out(fused)             # (B, numClasses, 1, H, W)
+
+        return out.squeeze(2)             # (B, numClasses, H, W) -- matches single-layer label
+

@@ -143,12 +143,12 @@ class Extractor:
         }
 
 
-X_MIN = 2095
-X_MAX = 2281
-Y_MIN = 1897
-Y_MAX = 2088
+X_MIN = 2102
+X_MAX = 2275
+Y_MIN = 1910
+Y_MAX = 2078
 
 ##trainExtractor = Extractor(xMin=2100, xMax=2282, yMin=786, yMax=968,layerMin=525,layerMax=650)
 ##dataset = CylinderDataset(trainExtractor.extract("layers525-650CYLINDER48"))
 testExtractor = Extractor(xMin=X_MIN, xMax=X_MAX, yMin=Y_MIN, yMax=Y_MAX,layerMin=525,layerMax=650)
-testdataset = CylinderDataset(testExtractor.extract("layers525-650CYLINDER24"))
+testdataset = CylinderDataset(testExtractor.extract("layers525-650CYLINDER24newpaddingtest"))
