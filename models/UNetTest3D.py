@@ -84,7 +84,7 @@ BATCH_SIZE = 32
 
 MAX_SHIFT = 5
 
-EPOCHS = 100
+EPOCHS = 250
 
 LEARNING_RATE = 1e-4
 
@@ -254,7 +254,7 @@ model = uNet3D(9, 1, depth=WINDOW).to(device)
 
 print("\nModel created.")
 
-print(f"Input channels: 4")
+print(f"Input channels: ")
 
 print(f"3D window depth: {WINDOW}")
 
