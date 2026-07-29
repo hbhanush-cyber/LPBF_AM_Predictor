@@ -78,13 +78,13 @@ if device.type == "cuda":
 # SETTINGS
 # ==========================================================
 
-WINDOW = 10
+WINDOW = 5
 
 BATCH_SIZE = 32
 
 MAX_SHIFT = 5
 
-EPOCHS = 250
+EPOCHS = 125
 
 LEARNING_RATE = 1e-4
 
@@ -108,15 +108,17 @@ else:
 # DATA FILES
 # ==========================================================
 
-trainingDataFile = (DATA_DIR / "layers525-650CYLINDER8Updated.pt")
+trainingDataFile = (DATA_DIR / "layers525-650CYLINDER1Updated.pt")
 
-trainingDataFile1 = (DATA_DIR / "layers525-650CYLINDER16Updated.pt")
+trainingDataFile1 = (DATA_DIR / "layers525-650CYLINDER9Updated.pt")
 
-trainingDataFile2 = (DATA_DIR / "layers525-650CYLINDER24Updated.pt")
+trainingDataFile2 = (DATA_DIR / "layers525-650CYLINDER17Updated.pt")
 
-trainingDataFile3 = (DATA_DIR / "layers525-650CYLINDER40Updated.pt")
+trainingDataFile3 = (DATA_DIR / "layers525-650CYLINDER25Updated.pt")
 
-testingDataFile = (DATA_DIR / "layers525-650CYLINDER8Updated.pt")
+trainingDataFile4 = (DATA_DIR / "layers525-650CYLINDER33Updated.pt")
+
+testingDataFile = (DATA_DIR / "layers525-650CYLINDER1Updated.pt")
 #new files
 
 
@@ -133,6 +135,8 @@ rawData48 = torch.load(trainingDataFile1, map_location="cpu")
 rawData40 = torch.load(trainingDataFile2, map_location="cpu")
 
 rawData8 = torch.load(trainingDataFile3, map_location="cpu")
+
+rawData33 = torch.load(trainingDataFile4, map_location="cpu)
 
 rawTestData = torch.load(testingDataFile, map_location="cpu")
 
@@ -152,6 +156,8 @@ dataset48 = CylinderDataset3D(rawData48, window=WINDOW, augment=True, max_shift=
 dataset40 = CylinderDataset3D(rawData40, window=WINDOW, augment=True, max_shift=MAX_SHIFT)
 
 dataset8 = CylinderDataset3D(rawData8, window=WINDOW, augment=True, max_shift=MAX_SHIFT)
+
+dataset33 = CylinderDataset3D(rawData33, window=WINDOW, augment=True, max_shift=MAX_SHIFT)
 
 # ==========================================================
 # CREATE TEST DATASET
@@ -183,6 +189,10 @@ train_loader48 = DataLoader(dataset48, shuffle=True, **loader_kwargs)
 train_loader40 = DataLoader(dataset40, shuffle=True, **loader_kwargs)
 
 train_loader8 = DataLoader(dataset8, shuffle=True, **loader_kwargs)
+
+train_loader33 = DataLoader(dataset33, shuffle=True, **loader_kwargs)
+
+
 
 test_loader = DataLoader(
 
@@ -274,7 +284,9 @@ training_datasets = [
 
     dataset40,
 
-    dataset8
+    dataset8,
+
+    dataset33
 
 ]
 
@@ -372,7 +384,10 @@ train_loaders = [
 
     ("Cylinder40", train_loader40),
 
-    ("Cylinder8", train_loader8)
+    ("Cylinder8", train_loader8),
+    
+    ("Cylinder33", train_loader33)
+    
 
 ]
 
