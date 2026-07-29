@@ -136,7 +136,7 @@ rawData40 = torch.load(trainingDataFile2, map_location="cpu")
 
 rawData8 = torch.load(trainingDataFile3, map_location="cpu")
 
-rawData33 = torch.load(trainingDataFile4, map_location="cpu)
+rawData33 = torch.load(trainingDataFile4, map_location="cpu")
 
 rawTestData = torch.load(testingDataFile, map_location="cpu")
 
