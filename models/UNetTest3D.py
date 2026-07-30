@@ -7,11 +7,12 @@ from CNNUNET3D import uNet3D
 from CylinderDataset3D import CylinderDataset3D
 from torch.utils.data import DataLoader
 
-
 # ==========================================================
 # LOSS FUNCTION
 # ==========================================================
-x=12
+x = 12
+
+
 class DiceBCELoss(nn.Module):
 
     def __init__(self, pos_weight=None, dice_weight=1.0, bce_weight=1.0, smooth=1.0):
@@ -84,13 +85,13 @@ BATCH_SIZE = 32
 
 MAX_SHIFT = 5
 
-EPOCHS = 125
+EPOCHS = 400
 
 LEARNING_RATE = 1e-4
 
 NUM_WORKERS = 2
 
-CHECKPOINT_INTERVAL = 10
+CHECKPOINT_INTERVAL = 100
 
 # ==========================================================
 # DATA DIRECTORY
@@ -104,161 +105,73 @@ else:
 
     DATA_DIR = Path(r"C:\Users\hrida\PycharmProjects\LBPF_ML_AM\models")
 
-# ==========================================================
-# DATA FILES
-# ==========================================================
 
-trainingDataFile = (DATA_DIR / "layers525-650CYLINDER1Updated.pt")
+trainingDataFile1 = (DATA_DIR / "layers525-650CYLINDER1Updated.pt")
+trainingDataFile8 = (DATA_DIR / "layers525-650CYLINDER8Updated.pt")
+trainingDataFile9 = (DATA_DIR / "layers525-650CYLINDER9Updated.pt")
+trainingDataFile16 = (DATA_DIR / "layers525-650CYLINDER16Updated.pt")
+trainingDataFile17 = (DATA_DIR / "layers525-650CYLINDER17Updated.pt")
+##trainingDataFile24 = (DATA_DIR / "layers525-650CYLINDER24Updated.pt")
+trainingDataFile25 = (DATA_DIR / "layers525-650CYLINDER25Updated.pt")
+trainingDataFile33 = (DATA_DIR / "layers525-650CYLINDER33Updated.pt")
+trainingDataFile40 = (DATA_DIR / "layers525-650CYLINDER40Updated.pt")
+trainingDataFile41 = (DATA_DIR / "layers525-650CYLINDER41Updated.pt")
+trainingDataFile47 = (DATA_DIR / "layers525-650CYLINDER47Updated.pt")
+trainingDataFile48 = (DATA_DIR / "layers525-650CYLINDER48Updated.pt")
 
-trainingDataFile1 = (DATA_DIR / "layers525-650CYLINDER9Updated.pt")
+testingDataFile = (DATA_DIR / "layers525-650CYLINDER24Updated.pt")
 
-trainingDataFile2 = (DATA_DIR / "layers525-650CYLINDER17Updated.pt")
-
-trainingDataFile3 = (DATA_DIR / "layers525-650CYLINDER25Updated.pt")
-
-trainingDataFile4 = (DATA_DIR / "layers525-650CYLINDER33Updated.pt")
-
-testingDataFile = (DATA_DIR / "layers525-650CYLINDER1Updated.pt")
-#new files
-
-
-# ==========================================================
-# LOAD RAW DATA
-# ==========================================================
 
 print("\nLoading datasets...")
 
-rawData24 = torch.load(trainingDataFile, map_location="cpu")
-
-rawData48 = torch.load(trainingDataFile1, map_location="cpu")
-
-rawData40 = torch.load(trainingDataFile2, map_location="cpu")
-
-rawData8 = torch.load(trainingDataFile3, map_location="cpu")
-
-rawData33 = torch.load(trainingDataFile4, map_location="cpu")
+rawData1 = torch.load(trainingDataFile1, map_location="cpu")
+rawData8 = torch.load(trainingDataFile8, map_location="cpu")
+rawData9 = torch.load(trainingDataFile9, map_location="cpu")
+rawData16 = torch.load(trainingDataFile16, map_location="cpu")
+rawData17 = torch.load(trainingDataFile17, map_location="cpu")
+rawData25 = torch.load(trainingDataFile25, map_location="cpu")
+rawData33 = torch.load(trainingDataFile33, map_location="cpu")
+rawData40 = torch.load(trainingDataFile40, map_location="cpu")
+rawData41 = torch.load(trainingDataFile41, map_location="cpu")
+rawData47 = torch.load(trainingDataFile47, map_location="cpu")
+rawData48 = torch.load(trainingDataFile48, map_location="cpu")
 
 rawTestData = torch.load(testingDataFile, map_location="cpu")
 
-# ==========================================================
-# CREATE TRAINING DATASETS
-#
-# Each cylinder remains a separate dataset because
-# the original cylinders have different spatial dimensions.
-#
-# Shift augmentation is applied only to training data.
-# ==========================================================
-
-dataset24 = CylinderDataset3D(rawData24, window=WINDOW, augment=True, max_shift=MAX_SHIFT)
-
+dataset1 = CylinderDataset3D(rawData1, window=WINDOW, augment=True, max_shift=MAX_SHIFT)
+dataset8 = CylinderDataset3D(rawData8, window=WINDOW, augment=True, max_shift=MAX_SHIFT)
+dataset9 = CylinderDataset3D(rawData9, window=WINDOW, augment=True, max_shift=MAX_SHIFT)
+dataset16 = CylinderDataset3D(rawData16, window=WINDOW, augment=True, max_shift=MAX_SHIFT)
+dataset17 = CylinderDataset3D(rawData17, window=WINDOW, augment=True, max_shift=MAX_SHIFT)
+dataset25 = CylinderDataset3D(rawData25, window=WINDOW, augment=True, max_shift=MAX_SHIFT)
+dataset33 = CylinderDataset3D(rawData33, window=WINDOW, augment=True, max_shift=MAX_SHIFT)
+dataset40 = CylinderDataset3D(rawData40, window=WINDOW, augment=True, max_shift=MAX_SHIFT)
+dataset41 = CylinderDataset3D(rawData41, window=WINDOW, augment=True, max_shift=MAX_SHIFT)
+dataset47 = CylinderDataset3D(rawData47, window=WINDOW, augment=True, max_shift=MAX_SHIFT)
 dataset48 = CylinderDataset3D(rawData48, window=WINDOW, augment=True, max_shift=MAX_SHIFT)
 
-dataset40 = CylinderDataset3D(rawData40, window=WINDOW, augment=True, max_shift=MAX_SHIFT)
-
-dataset8 = CylinderDataset3D(rawData8, window=WINDOW, augment=True, max_shift=MAX_SHIFT)
-
-dataset33 = CylinderDataset3D(rawData33, window=WINDOW, augment=True, max_shift=MAX_SHIFT)
-
-# ==========================================================
-# CREATE TEST DATASET
-#
-# IMPORTANT:
-# No augmentation is used for testing.
-# ==========================================================
 
 testData = CylinderDataset3D(rawTestData, window=WINDOW, augment=False)
 
-# ==========================================================
-# DATA LOADERS
-# ==========================================================
+loader_kwargs = {"batch_size": BATCH_SIZE,"num_workers": NUM_WORKERS,"pin_memory": (device.type == "cuda"),"persistent_workers": (NUM_WORKERS > 0)}
 
-loader_kwargs = {
-
-    "batch_size": BATCH_SIZE,
-
-    "num_workers": NUM_WORKERS,
-
-    "pin_memory": (device.type == "cuda"),
-
-    "persistent_workers": (NUM_WORKERS > 0)}
-
-train_loader24 = DataLoader(dataset24, shuffle=True, **loader_kwargs)
-
+train_loader1 = DataLoader(dataset1, shuffle=True, **loader_kwargs)
+train_loader8 = DataLoader(dataset8, shuffle=True, **loader_kwargs)
+train_loader9 = DataLoader(dataset9, shuffle=True, **loader_kwargs)
+train_loader16 = DataLoader(dataset16, shuffle=True, **loader_kwargs)
+train_loader17 = DataLoader(dataset17, shuffle=True, **loader_kwargs)
+train_loader25 = DataLoader(dataset25, shuffle=True, **loader_kwargs)
+train_loader33 = DataLoader(dataset33, shuffle=True, **loader_kwargs)
+train_loader40 = DataLoader(dataset40, shuffle=True, **loader_kwargs)
+train_loader41 = DataLoader(dataset41, shuffle=True, **loader_kwargs)
+train_loader47 = DataLoader(dataset47, shuffle=True, **loader_kwargs)
 train_loader48 = DataLoader(dataset48, shuffle=True, **loader_kwargs)
 
-train_loader40 = DataLoader(dataset40, shuffle=True, **loader_kwargs)
-
-train_loader8 = DataLoader(dataset8, shuffle=True, **loader_kwargs)
-
-train_loader33 = DataLoader(dataset33, shuffle=True, **loader_kwargs)
 
 
+test_loader = DataLoader(testData,batch_size=BATCH_SIZE,shuffle=False,num_workers=NUM_WORKERS,pin_memory=(device.type == "cuda"),persistent_workers=(NUM_WORKERS > 0))
 
-test_loader = DataLoader(
 
-    testData,
-
-    batch_size=BATCH_SIZE,
-
-    shuffle=False,
-
-    num_workers=NUM_WORKERS,
-
-    pin_memory=(device.type == "cuda"),
-
-    persistent_workers=(NUM_WORKERS > 0))
-
-# ==========================================================
-# DATASET INFORMATION
-# ==========================================================
-
-print("\nDataset sizes:")
-
-print(f"Cylinder 24: "
-      f"{len(dataset24)} layers")
-
-print(f"Cylinder 48: "
-      f"{len(dataset48)} layers")
-
-print(f"Cylinder 40: "
-      f"{len(dataset40)} layers")
-
-print(f"Cylinder 8: "
-      f"{len(dataset8)} layers")
-
-print(f"Test: "
-      f"{len(testData)} layers")
-
-print("\nNumber of batches:")
-
-print(f"Cylinder 24: "
-      f"{len(train_loader24)}")
-
-print(f"Cylinder 48: "
-      f"{len(train_loader48)}")
-
-print(f"Cylinder 40: "
-      f"{len(train_loader40)}")
-
-print(f"Cylinder 8: "
-      f"{len(train_loader8)}")
-
-print(f"Test: "
-      f"{len(test_loader)}")
-
-# ==========================================================
-# CREATE MODEL
-#
-# Input:
-#   4 channels
-#   10 previous/current layers
-#
-# Shape:
-#   (B, 4, 10, H, W)
-#
-# Output:
-#   (B, 1, H, W)
-# ==========================================================
 
 model = uNet3D(9, 1, depth=WINDOW).to(device)
 
@@ -268,30 +181,10 @@ print(f"Input channels: ")
 
 print(f"3D window depth: {WINDOW}")
 
-# ==========================================================
-# CALCULATE CLASS IMBALANCE
-#
-# The shift augmentation does not change the number
-# of positive pixels, so calculating pos_weight from
-# the original labels is valid.
-# ==========================================================
 
-training_datasets = [
-
-    dataset24,
-
-    dataset48,
-
-    dataset40,
-
-    dataset8,
-
-    dataset33
-
-]
+training_datasets = [dataset1, dataset8, dataset9, dataset16, dataset25, dataset33, dataset40, dataset41, dataset47,]
 
 total_pos = 0
-
 total_pixels = 0
 
 for ds in training_datasets:
@@ -305,15 +198,7 @@ pos_ratio = (total_pos / total_pixels)
 
 pos_weight_value = ((1.0 - pos_ratio) / pos_ratio)
 
-pos_weight = torch.tensor(
-
-    [pos_weight_value],
-
-    dtype=torch.float32,
-
-    device=device
-
-)
+pos_weight = torch.tensor( [pos_weight_value], dtype=torch.float32, device=device)
 
 print(f"\nPositive pixel ratio: "
       f"{pos_ratio:.8f}")
@@ -321,79 +206,26 @@ print(f"\nPositive pixel ratio: "
 print(f"Computed pos_weight: "
       f"{pos_weight.item():.2f}")
 
-# ==========================================================
-# LOSS
-# ==========================================================
 
-crit = DiceBCELoss(
+crit = DiceBCELoss(pos_weight=pos_weight*0.5, dice_weight=0.75, bce_weight=1.0)
 
-    pos_weight=pos_weight,
 
-    dice_weight=1.0,
-
-    bce_weight=1.0
-
-)
-
-# ==========================================================
-# OPTIMIZER
-# ==========================================================
-
-optim = torch.optim.Adam(
-
-    model.parameters(),
-
-    lr=LEARNING_RATE
-
-)
-
-# ==========================================================
-# MIXED PRECISION
-#
-# The T4 GPU benefits from mixed precision.
-# ==========================================================
+optim = torch.optim.Adam(model.parameters(),lr=LEARNING_RATE)
 
 if device.type == "cuda":
-
     scaler = torch.amp.GradScaler("cuda")
 
 else:
 
     scaler = None
 
-# ==========================================================
-# TRAINING SETUP
-# ==========================================================
 
 startTime = time.time()
 
 trainLoss = []
 
-# Keep the four loaders separate.
-#
-# This is necessary because the four cylinders have
-# different spatial dimensions.
-#
-# Each epoch still trains on every cylinder.
+train_loaders = [("Cylinder1", train_loader1),("Cylinder8", train_loader8),("Cylinder9",train_loader9), ("Cylinder16",train_loader16),("Cylinder17",train_loader17),("Cylinder25",train_loader25),("Cylinder33",train_loader33),("Cylinder40",train_loader40),("Cylinder41",train_loader41),("Cylinder47",train_loader47),("Cylinder48",train_loader48)]
 
-train_loaders = [
-
-    ("Cylinder24", train_loader24),
-
-    ("Cylinder48", train_loader48),
-
-    ("Cylinder40", train_loader40),
-
-    ("Cylinder8", train_loader8),
-    
-    ("Cylinder33", train_loader33)
-    
-
-]
-
-# ==========================================================
-# TRAINING LOOP
-# ==========================================================
 
 for epoch in range(EPOCHS):
 
@@ -412,9 +244,6 @@ for epoch in range(EPOCHS):
 
     print("=" * 60)
 
-    # ------------------------------------------
-    # TRAIN ON EACH CYLINDER
-    # ------------------------------------------
 
     for cylinder_name, loader in train_loaders:
 
@@ -424,45 +253,16 @@ for epoch in range(EPOCHS):
 
         for b, (images, labels) in enumerate(loader):
 
-            # --------------------------------------
-            # MOVE DATA TO GPU
-            # --------------------------------------
+            images = images.to(device,non_blocking=(device.type == "cuda"))
 
-            images = images.to(
+            labels = labels.to(device,non_blocking=(device.type == "cuda"))
 
-                device,
-
-                non_blocking=(device.type == "cuda")
-
-            )
-
-            labels = labels.to(
-
-                device,
-
-                non_blocking=(device.type == "cuda")
-
-            )
-
-            # --------------------------------------
-            # RESET GRADIENTS
-            # --------------------------------------
 
             optim.zero_grad(set_to_none=True)
 
-            # --------------------------------------
-            # FORWARD PASS
-            # --------------------------------------
-
             if device.type == "cuda":
 
-                with torch.amp.autocast(
-
-                        device_type="cuda",
-
-                        dtype=torch.float16
-
-                ):
+                with torch.amp.autocast(device_type="cuda",dtype=torch.float16):
 
                     labelPred = model(images)
 
@@ -473,10 +273,6 @@ for epoch in range(EPOCHS):
                         labels
 
                     )
-
-                # ----------------------------------
-                # BACKWARD PASS
-                # ----------------------------------
 
                 scaler.scale(loss).backward()
 
@@ -501,9 +297,6 @@ for epoch in range(EPOCHS):
 
                 optim.step()
 
-            # --------------------------------------
-            # RECORD LOSS
-            # --------------------------------------
 
             loss_value = (loss.item())
 
@@ -515,9 +308,6 @@ for epoch in range(EPOCHS):
 
             cylinder_batches += 1
 
-            # --------------------------------------
-            # PROGRESS
-            # --------------------------------------
 
             if ((b + 1) % 10 == 0 or (b + 1) == len(loader)):
                 print(
@@ -534,10 +324,6 @@ for epoch in range(EPOCHS):
                     f"{loss_value:.6f}"
 
                 )
-
-        # ------------------------------------------
-        # CYLINDER AVERAGE LOSS
-        # ------------------------------------------
 
         if cylinder_batches > 0:
 
@@ -654,16 +440,8 @@ print(f"Total training time: "
 
 print(f"Total training time: "
       f"{totalTime / 3600:.2f} hours")
-#goongsfgsdg
-# ==========================================================
-# SAVE FINAL MODEL
-# ==========================================================
 
-final_model_path = (
-
-        DATA_DIR / "final_model_e100_3dCNNUnet10layerWindow.pt"
-
-)
+final_model_path = (DATA_DIR / "final_model_e400BiggestAndDiverseDataset")
 
 torch.save(
 
