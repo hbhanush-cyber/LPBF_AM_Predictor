@@ -181,18 +181,6 @@ pos_weight = torch.tensor([pos_weight_value], dtype=torch.float32, device=device
 
 print(pos_weight.item())
 
-for ds in training_datasets:
-
-    for i in range(len(ds)):
-        total_pos += (ds.Y[i].sum().item())
-
-        total_pixels += (ds.Y[i].numel())
-
-pos_ratio = (total_pos / total_pixels)
-
-pos_weight_value = ((1.0 - pos_ratio) / pos_ratio)
-
-pos_weight = torch.tensor( [pos_weight_value], dtype=torch.float32, device=device)
 
 print(f"\nPositive pixel ratio: "
       f"{pos_ratio:.8f}")
