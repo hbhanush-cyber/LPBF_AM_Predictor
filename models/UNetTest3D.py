@@ -106,67 +106,41 @@ else:
     DATA_DIR = Path(r"C:\Users\hrida\PycharmProjects\LBPF_ML_AM\models")
 
 
-trainingDataFile1 = (DATA_DIR / "layers525-650CYLINDER1Updated.pt")
-trainingDataFile8 = (DATA_DIR / "layers525-650CYLINDER8Updated.pt")
-trainingDataFile9 = (DATA_DIR / "layers525-650CYLINDER9Updated.pt")
-trainingDataFile16 = (DATA_DIR / "layers525-650CYLINDER16Updated.pt")
-trainingDataFile17 = (DATA_DIR / "layers525-650CYLINDER17Updated.pt")
-##trainingDataFile24 = (DATA_DIR / "layers525-650CYLINDER24Updated.pt")
-trainingDataFile25 = (DATA_DIR / "layers525-650CYLINDER25Updated.pt")
-trainingDataFile33 = (DATA_DIR / "layers525-650CYLINDER33Updated.pt")
-trainingDataFile40 = (DATA_DIR / "layers525-650CYLINDER40Updated.pt")
-trainingDataFile41 = (DATA_DIR / "layers525-650CYLINDER41Updated.pt")
-trainingDataFile47 = (DATA_DIR / "layers525-650CYLINDER47Updated.pt")
-trainingDataFile48 = (DATA_DIR / "layers525-650CYLINDER48Updated.pt")
+training_files = [
+    ("Cylinder1", DATA_DIR / "layers525-650CYLINDER1Updated.pt"),
+    ("Cylinder8", DATA_DIR / "layers525-650CYLINDER8Updated.pt"),
+    ("Cylinder9", DATA_DIR / "layers525-650CYLINDER9Updated.pt"),
+    ("Cylinder16", DATA_DIR / "layers525-650CYLINDER16Updated.pt"),
+    ("Cylinder17", DATA_DIR / "layers525-650CYLINDER17Updated.pt"),
+    ("Cylinder25", DATA_DIR / "layers525-650CYLINDER25Updated.pt"),
+    ("Cylinder33", DATA_DIR / "layers525-650CYLINDER33Updated.pt"),
+    ("Cylinder40", DATA_DIR / "layers525-650CYLINDER40Updated.pt"),
+    ("Cylinder41", DATA_DIR / "layers525-650CYLINDER41Updated.pt"),
+    ("Cylinder47", DATA_DIR / "layers525-650CYLINDER47Updated.pt"),
+    ("Cylinder48", DATA_DIR / "layers525-650CYLINDER48Updated.pt"),
+]
+
+testingDataFile = DATA_DIR / "layers525-650CYLINDER24Updated.pt"
 
 testingDataFile = (DATA_DIR / "layers525-650CYLINDER24Updated.pt")
 
+import gc
 
-print("\nLoading datasets...")
-
-rawData1 = torch.load(trainingDataFile1, map_location="cpu")
-rawData8 = torch.load(trainingDataFile8, map_location="cpu")
-rawData9 = torch.load(trainingDataFile9, map_location="cpu")
-rawData16 = torch.load(trainingDataFile16, map_location="cpu")
-rawData17 = torch.load(trainingDataFile17, map_location="cpu")
-rawData25 = torch.load(trainingDataFile25, map_location="cpu")
-rawData33 = torch.load(trainingDataFile33, map_location="cpu")
-rawData40 = torch.load(trainingDataFile40, map_location="cpu")
-rawData41 = torch.load(trainingDataFile41, map_location="cpu")
-rawData47 = torch.load(trainingDataFile47, map_location="cpu")
-rawData48 = torch.load(trainingDataFile48, map_location="cpu")
+print("\nLoading test dataset...")
 
 rawTestData = torch.load(testingDataFile, map_location="cpu")
-
-dataset1 = CylinderDataset3D(rawData1, window=WINDOW, augment=True, max_shift=MAX_SHIFT)
-dataset8 = CylinderDataset3D(rawData8, window=WINDOW, augment=True, max_shift=MAX_SHIFT)
-dataset9 = CylinderDataset3D(rawData9, window=WINDOW, augment=True, max_shift=MAX_SHIFT)
-dataset16 = CylinderDataset3D(rawData16, window=WINDOW, augment=True, max_shift=MAX_SHIFT)
-dataset17 = CylinderDataset3D(rawData17, window=WINDOW, augment=True, max_shift=MAX_SHIFT)
-dataset25 = CylinderDataset3D(rawData25, window=WINDOW, augment=True, max_shift=MAX_SHIFT)
-dataset33 = CylinderDataset3D(rawData33, window=WINDOW, augment=True, max_shift=MAX_SHIFT)
-dataset40 = CylinderDataset3D(rawData40, window=WINDOW, augment=True, max_shift=MAX_SHIFT)
-dataset41 = CylinderDataset3D(rawData41, window=WINDOW, augment=True, max_shift=MAX_SHIFT)
-dataset47 = CylinderDataset3D(rawData47, window=WINDOW, augment=True, max_shift=MAX_SHIFT)
-dataset48 = CylinderDataset3D(rawData48, window=WINDOW, augment=True, max_shift=MAX_SHIFT)
-
-
 testData = CylinderDataset3D(rawTestData, window=WINDOW, augment=False)
+del rawTestData
+gc.collect()
 
-loader_kwargs = {"batch_size": BATCH_SIZE,"num_workers": NUM_WORKERS,"pin_memory": (device.type == "cuda"),"persistent_workers": (NUM_WORKERS > 0)}
+loader_kwargs = {
+    "batch_size": BATCH_SIZE,
+    "num_workers": 0,
+    "pin_memory": device.type == "cuda",
+    "persistent_workers": False
+}
 
-train_loader1 = DataLoader(dataset1, shuffle=True, **loader_kwargs)
-train_loader8 = DataLoader(dataset8, shuffle=True, **loader_kwargs)
-train_loader9 = DataLoader(dataset9, shuffle=True, **loader_kwargs)
-train_loader16 = DataLoader(dataset16, shuffle=True, **loader_kwargs)
-train_loader17 = DataLoader(dataset17, shuffle=True, **loader_kwargs)
-train_loader25 = DataLoader(dataset25, shuffle=True, **loader_kwargs)
-train_loader33 = DataLoader(dataset33, shuffle=True, **loader_kwargs)
-train_loader40 = DataLoader(dataset40, shuffle=True, **loader_kwargs)
-train_loader41 = DataLoader(dataset41, shuffle=True, **loader_kwargs)
-train_loader47 = DataLoader(dataset47, shuffle=True, **loader_kwargs)
-train_loader48 = DataLoader(dataset48, shuffle=True, **loader_kwargs)
-
+test_loader = DataLoader(testData, shuffle=False, **loader_kwargs)
 
 
 test_loader = DataLoader(testData,batch_size=BATCH_SIZE,shuffle=False,num_workers=NUM_WORKERS,pin_memory=(device.type == "cuda"),persistent_workers=(NUM_WORKERS > 0))
@@ -182,10 +156,30 @@ print(f"Input channels: ")
 print(f"3D window depth: {WINDOW}")
 
 
-training_datasets = [dataset1, dataset8, dataset9, dataset16, dataset25, dataset33, dataset40, dataset41, dataset47,]
-
 total_pos = 0
 total_pixels = 0
+
+print("Computing pos_weight...")
+
+for _, file in training_files:
+
+    raw = torch.load(file, map_location="cpu")
+
+    dataset = CylinderDataset3D(raw, window=WINDOW, augment=False)
+
+    for label in dataset.Y:
+        total_pos += label.sum().item()
+        total_pixels += label.numel()
+
+    del dataset
+    del raw
+    gc.collect()
+
+pos_ratio = total_pos / total_pixels
+pos_weight_value = (1.0 - pos_ratio) / pos_ratio
+pos_weight = torch.tensor([pos_weight_value], dtype=torch.float32, device=device)
+
+print(pos_weight.item())
 
 for ds in training_datasets:
 
@@ -224,7 +218,7 @@ startTime = time.time()
 
 trainLoss = []
 
-train_loaders = [("Cylinder1", train_loader1),("Cylinder8", train_loader8),("Cylinder9",train_loader9), ("Cylinder16",train_loader16),("Cylinder17",train_loader17),("Cylinder25",train_loader25),("Cylinder33",train_loader33),("Cylinder40",train_loader40),("Cylinder41",train_loader41),("Cylinder47",train_loader47),("Cylinder48",train_loader48)]
+
 
 
 for epoch in range(EPOCHS):
@@ -244,8 +238,18 @@ for epoch in range(EPOCHS):
 
     print("=" * 60)
 
+    for cylinder_name, file in training_files:
 
-    for cylinder_name, loader in train_loaders:
+        print(f"\nLoading {cylinder_name}")
+
+        raw = torch.load(file, map_location="cpu")
+
+        dataset = CylinderDataset3D(raw, window=WINDOW, augment=True, max_shift=MAX_SHIFT)
+
+        loader = DataLoader(dataset, shuffle=True, **loader_kwargs)
+
+        del raw
+        gc.collect()
 
         cylinder_loss = 0.0
 
@@ -344,6 +348,13 @@ for epoch in range(EPOCHS):
             f"{average_cylinder_loss:.6f}"
 
         )
+        del loader
+        del dataset
+
+        gc.collect()
+
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
 
     # ------------------------------------------
     # EPOCH AVERAGE LOSS
