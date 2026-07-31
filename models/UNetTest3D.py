@@ -91,7 +91,7 @@ LEARNING_RATE = 1e-4
 
 NUM_WORKERS = 2
 
-CHECKPOINT_INTERVAL = 100
+CHECKPOINT_INTERVAL = 50
 
 # ==========================================================
 # DATA DIRECTORY
@@ -117,12 +117,11 @@ training_files = [
     ("Cylinder40", DATA_DIR / "layers525-650CYLINDER40Updated.pt"),
     ("Cylinder41", DATA_DIR / "layers525-650CYLINDER41Updated.pt"),
     ("Cylinder47", DATA_DIR / "layers525-650CYLINDER47Updated.pt"),
-    ("Cylinder48", DATA_DIR / "layers525-650CYLINDER48Updated.pt"),
+    ("Cylinder49", DATA_DIR / "layers525-650CYLINDER49Updated.pt"),
 ]
 
 testingDataFile = DATA_DIR / "layers525-650CYLINDER24Updated.pt"
 
-testingDataFile = (DATA_DIR / "layers525-650CYLINDER24Updated.pt")
 
 import gc
 
@@ -189,7 +188,7 @@ print(f"Computed pos_weight: "
       f"{pos_weight.item():.2f}")
 
 
-crit = DiceBCELoss(pos_weight=pos_weight*0.5, dice_weight=0.75, bce_weight=1.0)
+crit = DiceBCELoss(pos_weight=pos_weight*0.35, dice_weight=0.75, bce_weight=1.0)
 
 
 optim = torch.optim.Adam(model.parameters(),lr=LEARNING_RATE)
