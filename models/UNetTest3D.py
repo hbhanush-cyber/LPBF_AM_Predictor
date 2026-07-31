@@ -107,20 +107,19 @@ else:
 
 
 training_files = [
-    ("Cylinder1", DATA_DIR / "layers525-650CYLINDER1Updated.pt"),
-    ("Cylinder8", DATA_DIR / "layers525-650CYLINDER8Updated.pt"),
+    ("Cylinder4", DATA_DIR / "layers525-650CYLINDER4Updated.pt"),
     ("Cylinder9", DATA_DIR / "layers525-650CYLINDER9Updated.pt"),
-    ("Cylinder16", DATA_DIR / "layers525-650CYLINDER16Updated.pt"),
+    ("Cylinder10", DATA_DIR / "layers525-650CYLINDER10Updated.pt"),
     ("Cylinder17", DATA_DIR / "layers525-650CYLINDER17Updated.pt"),
     ("Cylinder25", DATA_DIR / "layers525-650CYLINDER25Updated.pt"),
     ("Cylinder33", DATA_DIR / "layers525-650CYLINDER33Updated.pt"),
-    ("Cylinder40", DATA_DIR / "layers525-650CYLINDER40Updated.pt"),
+    ("Cylinder44", DATA_DIR / "layers525-650CYLINDER44Updated.pt"),
     ("Cylinder41", DATA_DIR / "layers525-650CYLINDER41Updated.pt"),
     ("Cylinder47", DATA_DIR / "layers525-650CYLINDER47Updated.pt"),
     ("Cylinder49", DATA_DIR / "layers525-650CYLINDER49Updated.pt"),
 ]
 
-testingDataFile = DATA_DIR / "layers525-650CYLINDER24Updated.pt"
+testingDataFile = DATA_DIR / "layers525-650CYLINDER57Updated.pt"
 
 
 import gc
