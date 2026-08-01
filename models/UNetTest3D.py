@@ -121,6 +121,9 @@ training_files = [
 
 testingDataFile = DATA_DIR / "layers525-650CYLINDER57Updated.pt"
 
+RESUME_CHECKPOINT = DATA_DIR / "checkpoint_epoch150LatestTestNoSplatter.pt"
+RESUME_EPOCH = 151
+
 
 import gc
 
@@ -148,6 +151,34 @@ test_loader = DataLoader(testData,batch_size=BATCH_SIZE,shuffle=False,num_worker
 model = uNet3D(9, 1, depth=WINDOW).to(device)
 
 print("\nModel created.")
+
+
+# ==========================================================
+# RESUME FROM CHECKPOINT
+# ==========================================================
+
+if RESUME_CHECKPOINT is not None:
+
+    print(f"\nLoading checkpoint: {RESUME_CHECKPOINT}")
+
+    checkpoint = torch.load(
+        RESUME_CHECKPOINT,
+        map_location=device
+    )
+
+    model.load_state_dict(checkpoint)
+
+    print(
+        f"Checkpoint loaded successfully."
+    )
+
+    print(
+        f"Resuming training from epoch {RESUME_EPOCH + 1}."
+    )
+
+else:
+
+    print("\nStarting training from scratch.")
 
 print(f"Input channels: ")
 
@@ -187,7 +218,7 @@ print(f"Computed pos_weight: "
       f"{pos_weight.item():.2f}")
 
 
-crit = DiceBCELoss(pos_weight=pos_weight*0.35, dice_weight=0.75, bce_weight=1.0)
+crit = DiceBCELoss(pos_weight=pos_weight*0.20, dice_weight=0.75, bce_weight=1.0)
 
 
 optim = torch.optim.Adam(model.parameters(),lr=LEARNING_RATE)
@@ -207,7 +238,7 @@ trainLoss = []
 
 
 
-for epoch in range(EPOCHS):
+for epoch in range(RESUME_EPOCH, RESUME_EPOCH + EPOCHS):
 
     model.train()
 
@@ -401,13 +432,8 @@ for epoch in range(EPOCHS):
 
         )
 
-        torch.save(
-
-            model.state_dict(),
-
-            checkpoint_path
-
-        )
+        torch.save({"epoch": epoch, "model_state_dict": model.state_dict(), "optimizer_state_dict": optim.state_dict(),
+            "loss": average_epoch_loss, }, checkpoint_path)
 
         print(
 
