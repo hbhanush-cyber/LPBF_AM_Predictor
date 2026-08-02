@@ -83,7 +83,7 @@ WINDOW = 5
 
 BATCH_SIZE = 32
 
-MAX_SHIFT = 5
+MAX_SHIFT = 80
 
 EPOCHS = 400
 
@@ -121,8 +121,8 @@ training_files = [
 
 testingDataFile = DATA_DIR / "layers525-650CYLINDER57Updated.pt"
 
-RESUME_CHECKPOINT = DATA_DIR / "checkpoint_epoch150LatestTestNoSplatter.pt"
-RESUME_EPOCH = 151
+RESUME_CHECKPOINT = None
+RESUME_EPOCH = 0
 
 
 import gc
@@ -218,7 +218,7 @@ print(f"Computed pos_weight: "
       f"{pos_weight.item():.2f}")
 
 
-crit = DiceBCELoss(pos_weight=pos_weight*0.20, dice_weight=0.75, bce_weight=1.0)
+crit = DiceBCELoss(pos_weight=pos_weight*0.35, dice_weight=0.75, bce_weight=1.0)
 
 
 optim = torch.optim.Adam(model.parameters(),lr=LEARNING_RATE)
