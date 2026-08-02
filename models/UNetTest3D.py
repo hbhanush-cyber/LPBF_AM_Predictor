@@ -107,30 +107,49 @@ else:
 
 
 training_files = [
+    ("Cylinder2", DATA_DIR / "layers525-650CYLINDER4Updated.pt"),
+    ("Cylinder3", DATA_DIR / "layers525-650CYLINDER3Updated.pt"),
     ("Cylinder4", DATA_DIR / "layers525-650CYLINDER4Updated.pt"),
-    ("Cylinder9", DATA_DIR / "layers525-650CYLINDER9Updated.pt"),
     ("Cylinder10", DATA_DIR / "layers525-650CYLINDER10Updated.pt"),
-    ("Cylinder17", DATA_DIR / "layers525-650CYLINDER17Updated.pt"),
-    ("Cylinder25", DATA_DIR / "layers525-650CYLINDER25Updated.pt"),
-    ("Cylinder33", DATA_DIR / "layers525-650CYLINDER33Updated.pt"),
     ("Cylinder44", DATA_DIR / "layers525-650CYLINDER44Updated.pt"),
-    ("Cylinder41", DATA_DIR / "layers525-650CYLINDER41Updated.pt"),
     ("Cylinder47", DATA_DIR / "layers525-650CYLINDER47Updated.pt"),
-    ("Cylinder49", DATA_DIR / "layers525-650CYLINDER49Updated.pt"),
 ]
 
-testingDataFile = DATA_DIR / "layers525-650CYLINDER57Updated.pt"
+testingDataFile = DATA_DIR / "layers525-650CYLINDER10Updated.pt"
 
 RESUME_CHECKPOINT = None
 RESUME_EPOCH = 0
 
+# ==========================================================
+# INPUT CHANNEL SELECTION
+# ==========================================================
+
+# Available channels:
+#
+# 0 = IR0
+# 1 = IR1
+# 2 = IR2
+# 3 = VIS0
+# 4 = VIS1
+# 5 = overMelting
+# 6 = underMelting
+# 7 = incompleteSpreading
+# 8 = recoaterStreaking
+
+INPUT_CHANNELS = [
+    0,
+    1,
+    2,
+    3,
+    4,
+]
 
 import gc
 
 print("\nLoading test dataset...")
 
 rawTestData = torch.load(testingDataFile, map_location="cpu")
-testData = CylinderDataset3D(rawTestData, window=WINDOW, augment=False)
+testData = CylinderDataset3D(rawTestData, window=WINDOW, augment=False, input_channels=INPUT_CHANNELS)
 del rawTestData
 gc.collect()
 
@@ -148,7 +167,7 @@ test_loader = DataLoader(testData,batch_size=BATCH_SIZE,shuffle=False,num_worker
 
 
 
-model = uNet3D(9, 1, depth=WINDOW).to(device)
+model = uNet3D(5, 1, depth=WINDOW).to(device)
 
 print("\nModel created.")
 
@@ -194,7 +213,7 @@ for _, file in training_files:
 
     raw = torch.load(file, map_location="cpu")
 
-    dataset = CylinderDataset3D(raw, window=WINDOW, augment=False)
+    dataset = CylinderDataset3D(raw, window=WINDOW, augment=False, input_channels=INPUT_CHANNELS)
 
     for label in dataset.Y:
         total_pos += label.sum().item()
@@ -218,7 +237,7 @@ print(f"Computed pos_weight: "
       f"{pos_weight.item():.2f}")
 
 
-crit = DiceBCELoss(pos_weight=pos_weight*0.35, dice_weight=0.75, bce_weight=1.0)
+crit = DiceBCELoss(pos_weight=pos_weight, dice_weight=1.5, bce_weight=1.0)
 
 
 optim = torch.optim.Adam(model.parameters(),lr=LEARNING_RATE)
@@ -261,7 +280,7 @@ for epoch in range(RESUME_EPOCH, RESUME_EPOCH + EPOCHS):
 
         raw = torch.load(file, map_location="cpu")
 
-        dataset = CylinderDataset3D(raw, window=WINDOW, augment=True, max_shift=MAX_SHIFT)
+        dataset = CylinderDataset3D(raw, window=WINDOW, augment=True, max_shift=MAX_SHIFT, input_channels=INPUT_CHANNELS)
 
         loader = DataLoader(dataset, shuffle=True, **loader_kwargs)
 
