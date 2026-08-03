@@ -143,9 +143,6 @@ RESUME_EPOCH = 0
 INPUT_CHANNELS = [
     0,
     1,
-    2,
-    3,
-    4,
 ]
 
 import gc
