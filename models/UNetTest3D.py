@@ -110,15 +110,19 @@ training_files = [
     ("Cylinder2", DATA_DIR / "layers525-650CYLINDER4Updated.pt"),
     ("Cylinder3", DATA_DIR / "layers525-650CYLINDER3Updated.pt"),
     ("Cylinder4", DATA_DIR / "layers525-650CYLINDER4Updated.pt"),
+    #("Cylinder5", DATA_DIR / "layers525-650CYLINDER5Updated.pt"),
     ("Cylinder10", DATA_DIR / "layers525-650CYLINDER10Updated.pt"),
+    #("Cylinder11", DATA_DIR / "layers525-650CYLINDER11Updated.pt"),
+    #("Cylinder12", DATA_DIR / "layers525-650CYLINDER12Updated.pt"),
+    #("Cylinder13", DATA_DIR / "layers525-650CYLINDER13Updated.pt"),
     ("Cylinder44", DATA_DIR / "layers525-650CYLINDER44Updated.pt"),
     ("Cylinder47", DATA_DIR / "layers525-650CYLINDER47Updated.pt"),
 ]
 
 testingDataFile = DATA_DIR / "layers525-650CYLINDER10Updated.pt"
 
-RESUME_CHECKPOINT = None
-RESUME_EPOCH = 0
+RESUME_CHECKPOINT = DATA_DIR / "checkpoint_epoch200onlyNeutral.pt"
+RESUME_EPOCH = 200
 
 # ==========================================================
 # INPUT CHANNEL SELECTION
