@@ -109,7 +109,7 @@ class uNet3D(nn.Module):
 
         up1 = self.upConv1(bottleNeck, down3)
 
-        up2 = self.upConv2(up1, down1)
+        up2 = self.upConv2(up1, down2)
 
         up3 = self.upConv3(up2, down1)
 
@@ -118,7 +118,7 @@ class uNet3D(nn.Module):
         #
         # (B,16,10,H,W)
 
-        fused = self.depthFuse(up4)
+        fused = self.depthFuse(up3)
 
         # Expected:
         #
