@@ -168,7 +168,7 @@ test_loader = DataLoader(testData,batch_size=BATCH_SIZE,shuffle=False,num_worker
 
 
 
-model = uNet3D(5, 1, depth=WINDOW).to(device)
+model = uNet3D(2, 1, depth=WINDOW).to(device)
 
 print("\nModel created.")
 
