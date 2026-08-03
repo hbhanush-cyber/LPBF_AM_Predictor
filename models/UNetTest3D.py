@@ -241,7 +241,7 @@ print(f"Computed pos_weight: "
       f"{pos_weight.item():.2f}")
 
 
-crit = DiceBCELoss(pos_weight=pos_weight, dice_weight=1.5, bce_weight=1.0)
+crit = DiceBCELoss(pos_weight=pos_weight, dice_weight=4.0, bce_weight=1.0)
 
 
 optim = torch.optim.Adam(model.parameters(),lr=LEARNING_RATE)
