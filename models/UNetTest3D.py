@@ -189,7 +189,7 @@ if RESUME_CHECKPOINT is not None:
         map_location=device
     )
 
-    model.load_state_dict(checkpoint)
+    model.load_state_dict(checkpoint["model_state_dict"])
 
     print(
         f"Checkpoint loaded successfully."
