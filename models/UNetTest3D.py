@@ -107,7 +107,7 @@ else:
 
 
 training_files = [
-    ("Cylinder2", DATA_DIR / "layers525-650CYLINDER4Updated.pt"),
+    ("Cylinder2", DATA_DIR / "layers525-650CYLINDER2Updated.pt"),
     ("Cylinder3", DATA_DIR / "layers525-650CYLINDER3Updated.pt"),
     ("Cylinder4", DATA_DIR / "layers525-650CYLINDER4Updated.pt"),
     ("Cylinder5", DATA_DIR / "layers525-650CYLINDER5Updated.pt"),
@@ -123,7 +123,7 @@ training_files = [
     ("Cylinder19", DATA_DIR / "layers525-650CYLINDER19Updated.pt"),
     ("Cylinder26", DATA_DIR / "layers525-650CYLINDER26Updated.pt"),
     ("Cylinder27", DATA_DIR / "layers525-650CYLINDER27Updated.pt"),
-    ("Cylinder28", DATA_DIR / "layers525-650CYLINDER5Updated.pt"),
+    ("Cylinder28", DATA_DIR / "layers525-650CYLINDER28Updated.pt"),
     ("Cylinder44", DATA_DIR / "layers525-650CYLINDER44Updated.pt"),
     ("Cylinder47", DATA_DIR / "layers525-650CYLINDER47Updated.pt"),
 ]
