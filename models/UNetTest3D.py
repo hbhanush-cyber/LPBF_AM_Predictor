@@ -85,7 +85,7 @@ BATCH_SIZE = 32
 
 MAX_SHIFT = 80
 
-EPOCHS = 400
+EPOCHS = 800
 
 LEARNING_RATE = 1e-4
 
@@ -107,19 +107,28 @@ else:
 
 
 training_files = [
-    ("Cylinder2", DATA_DIR / "layers525-650CYLINDER4Updated.pt"),
+    ("Cylinder2", DATA_DIR / "layers525-650CYLINDER2Updated.pt"),
     ("Cylinder3", DATA_DIR / "layers525-650CYLINDER3Updated.pt"),
     ("Cylinder4", DATA_DIR / "layers525-650CYLINDER4Updated.pt"),
     ("Cylinder5", DATA_DIR / "layers525-650CYLINDER5Updated.pt"),
+    ("Cylinder6", DATA_DIR / "layers525-650CYLINDER6Updated.pt"),
+    ("Cylinder7", DATA_DIR / "layers525-650CYLINDER7Updated.pt"),
     ("Cylinder10", DATA_DIR / "layers525-650CYLINDER10Updated.pt"),
     ("Cylinder11", DATA_DIR / "layers525-650CYLINDER11Updated.pt"),
     ("Cylinder12", DATA_DIR / "layers525-650CYLINDER12Updated.pt"),
-    #("Cylinder13", DATA_DIR / "layers525-650CYLINDER13Updated.pt"),
+    ("Cylinder13", DATA_DIR / "layers525-650CYLINDER13Updated.pt"),
+    ("Cylinder14", DATA_DIR / "layers525-650CYLINDER14Updated.pt"),
+    ("Cylinder15", DATA_DIR / "layers525-650CYLINDER15Updated.pt"),
+    ("Cylinder18", DATA_DIR / "layers525-650CYLINDER18Updated.pt"),
+    ("Cylinder19", DATA_DIR / "layers525-650CYLINDER19Updated.pt"),
+    ("Cylinder26", DATA_DIR / "layers525-650CYLINDER26Updated.pt"),
+    ("Cylinder27", DATA_DIR / "layers525-650CYLINDER27Updated.pt"),
+    ("Cylinder28", DATA_DIR / "layers525-650CYLINDER28Updated.pt"),
     ("Cylinder44", DATA_DIR / "layers525-650CYLINDER44Updated.pt"),
     ("Cylinder47", DATA_DIR / "layers525-650CYLINDER47Updated.pt"),
 ]
 
-testingDataFile = DATA_DIR / "layers525-650CYLINDER13Updated.pt"
+testingDataFile = DATA_DIR / "layers525-650CYLINDER10Updated.pt"
 
 RESUME_CHECKPOINT = None
 RESUME_EPOCH = 0
@@ -143,6 +152,8 @@ RESUME_EPOCH = 0
 INPUT_CHANNELS = [
     0,
     1,
+    3,
+    4,
 ]
 
 import gc
@@ -168,7 +179,7 @@ test_loader = DataLoader(testData,batch_size=BATCH_SIZE,shuffle=False,num_worker
 
 
 
-model = uNet3D(2, 1, depth=WINDOW).to(device)
+model = uNet3D(4, 1, depth=WINDOW).to(device)
 
 print("\nModel created.")
 
@@ -238,7 +249,7 @@ print(f"Computed pos_weight: "
       f"{pos_weight.item():.2f}")
 
 
-crit = DiceBCELoss(pos_weight=pos_weight, dice_weight=4.0, bce_weight=1.0)
+crit = DiceBCELoss(pos_weight=pos_weight, dice_weight=4, bce_weight=1.0)
 
 
 optim = torch.optim.Adam(model.parameters(),lr=LEARNING_RATE)
