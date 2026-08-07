@@ -130,8 +130,8 @@ training_files = [
 
 testingDataFile = DATA_DIR / "layers525-650CYLINDER10Updated.pt"
 
-RESUME_CHECKPOINT = DATA_DIR/ "checkpoint_epoch50BIGDATASMALLERMODEL.pt"
-RESUME_EPOCH = 50
+RESUME_CHECKPOINT = DATA_DIR/ "checkpoint_epoch100BigDataIsStealingMyData"
+RESUME_EPOCH = 100
 
 # ==========================================================
 # INPUT CHANNEL SELECTION
