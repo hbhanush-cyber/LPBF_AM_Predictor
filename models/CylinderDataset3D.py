@@ -39,7 +39,13 @@ class CylinderDataset3D(Dataset):
 
     def augment_tensor(self, x):
 
-        x = torch.rot90(x, random.randint(0, 3), dims=(-2, -1))
+        if random.random() < 0.5:
+            volume = torch.flip(volume, [-1])
+            label = torch.flip(label, [-1])
+
+        if random.random() < 0.5:
+            volume = torch.flip(volume, [-2])
+            label = torch.flip(label, [-2])
 
         if random.random() < 0.5:
             x = torch.flip(x, dims=[-1])
