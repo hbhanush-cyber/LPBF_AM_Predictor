@@ -7,10 +7,7 @@ from CNNUNET3D import uNet3D
 from CylinderDataset3D import CylinderDataset3D
 from torch.utils.data import DataLoader
 
-# ==========================================================
-# LOSS FUNCTION
-# ==========================================================
-x = 12
+
 
 
 class DiceBCELoss(nn.Module):
@@ -130,8 +127,8 @@ training_files = [
 
 testingDataFile = DATA_DIR / "layers525-650CYLINDER10Updated.pt"
 
-RESUME_CHECKPOINT = DATA_DIR/ "checkpoint_epoch50BIGDATASMALLERMODEL.pt"
-RESUME_EPOCH = 50
+RESUME_CHECKPOINT = None
+RESUME_EPOCH = 0
 
 # ==========================================================
 # INPUT CHANNEL SELECTION
