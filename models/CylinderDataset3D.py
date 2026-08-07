@@ -106,10 +106,7 @@ class CylinderDataset3D(Dataset):
             volume = self.shift_tensor(volume, dx, dy)
             label = self.shift_tensor(label, dx, dy)
 
-            k = random.randint(0, 3)
-            volume = torch.rot90(volume, k, dims=(-2, -1))
-            label = torch.rot90(label, k, dims=(-2, -1))
-
+            # flips only (keeps 224x192)
             if random.random() < 0.5:
                 volume = torch.flip(volume, [-1])
                 label = torch.flip(label, [-1])
@@ -118,9 +115,11 @@ class CylinderDataset3D(Dataset):
                 volume = torch.flip(volume, [-2])
                 label = torch.flip(label, [-2])
 
+            # random black square
             if random.random() < 0.5:
                 h, w = volume.shape[-2:]
                 s = random.randint(1, 40)
+
                 y = random.randint(0, h - s)
                 x = random.randint(0, w - s)
 
