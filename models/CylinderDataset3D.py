@@ -37,6 +37,25 @@ class CylinderDataset3D(Dataset):
     def __len__(self):
         return len(self.X)
 
+    def augment_tensor(self, x):
+
+        x = torch.rot90(x, random.randint(0, 3), dims=(-2, -1))
+
+        if random.random() < 0.5:
+            x = torch.flip(x, dims=[-1])
+
+        if random.random() < 0.5:
+            x = torch.flip(x, dims=[-2])
+
+        if random.random() < 0.5:
+            h, w = x.shape[-2:]
+            s = random.randint(1, 40)
+            y = random.randint(0, h - s)
+            x0 = random.randint(0, w - s)
+
+            x[..., y:y + s, x0:x0 + s] = 0
+
+        return x
     def shift_tensor(self, x, dx, dy, fill=0.0):
 
         H = x.shape[-2]
@@ -78,7 +97,28 @@ class CylinderDataset3D(Dataset):
             dx = random.randint(-self.max_shift, self.max_shift)
             dy = random.randint(-self.max_shift, self.max_shift)
 
-            volume = self.shift_tensor(volume, dx=dx, dy=dy, fill=0.0)
-            label = self.shift_tensor(label, dx=dx, dy=dy, fill=0.0)
+            volume = self.shift_tensor(volume, dx, dy)
+            label = self.shift_tensor(label, dx, dy)
+
+            k = random.randint(0, 3)
+            volume = torch.rot90(volume, k, dims=(-2, -1))
+            label = torch.rot90(label, k, dims=(-2, -1))
+
+            if random.random() < 0.5:
+                volume = torch.flip(volume, [-1])
+                label = torch.flip(label, [-1])
+
+            if random.random() < 0.5:
+                volume = torch.flip(volume, [-2])
+                label = torch.flip(label, [-2])
+
+            if random.random() < 0.5:
+                h, w = volume.shape[-2:]
+                s = random.randint(1, 40)
+                y = random.randint(0, h - s)
+                x = random.randint(0, w - s)
+
+                volume[..., y:y + s, x:x + s] = 0
+                label[..., y:y + s, x:x + s] = 0
 
         return volume, label
