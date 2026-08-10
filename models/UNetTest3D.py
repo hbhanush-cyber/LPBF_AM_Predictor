@@ -130,8 +130,8 @@ training_files = [
 
 testingDataFile = DATA_DIR / "layers525-650CYLINDER10Updated.pt"
 
-RESUME_CHECKPOINT = DATA_DIR / "checkpoint_epoch200EvenMoreAugmentation.pt"
-RESUME_EPOCH = 200
+RESUME_CHECKPOINT = None
+RESUME_EPOCH = 0
 
 # ==========================================================
 # INPUT CHANNEL SELECTION
