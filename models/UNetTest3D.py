@@ -252,7 +252,7 @@ print(f"Computed pos_weight: "
 crit = DiceBCELoss(pos_weight=pos_weight, dice_weight=1.5, bce_weight=1.0)
 
 
-optim = torch.optim.Adam(model.parameters(),lr=LEARNING_RATE)
+optim = torch.optim.AdamW(model.parameters(),lr=LEARNING_RATE)
 
 if device.type == "cuda":
     scaler = torch.amp.GradScaler("cuda")
