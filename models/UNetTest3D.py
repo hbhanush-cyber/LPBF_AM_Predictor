@@ -7,7 +7,10 @@ from CNNUNET3D import uNet3D
 from CylinderDataset3D import CylinderDataset3D
 from torch.utils.data import DataLoader
 
-
+# ==========================================================
+# LOSS FUNCTION
+# ==========================================================
+x = 12
 
 
 class DiceBCELoss(nn.Module):
@@ -104,7 +107,7 @@ else:
 
 
 training_files = [
-    ("Cylinder2", DATA_DIR / "layers525-650CYLINDER2Updated.pt"),
+    ("Cylinder2", DATA_DIR / "layers525-650CYLINDER4Updated.pt"),
     ("Cylinder3", DATA_DIR / "layers525-650CYLINDER3Updated.pt"),
     ("Cylinder4", DATA_DIR / "layers525-650CYLINDER4Updated.pt"),
     ("Cylinder5", DATA_DIR / "layers525-650CYLINDER5Updated.pt"),
@@ -120,15 +123,15 @@ training_files = [
     ("Cylinder19", DATA_DIR / "layers525-650CYLINDER19Updated.pt"),
     ("Cylinder26", DATA_DIR / "layers525-650CYLINDER26Updated.pt"),
     ("Cylinder27", DATA_DIR / "layers525-650CYLINDER27Updated.pt"),
-    ("Cylinder28", DATA_DIR / "layers525-650CYLINDER28Updated.pt"),
+    ("Cylinder28", DATA_DIR / "layers525-650CYLINDER5Updated.pt"),
     ("Cylinder44", DATA_DIR / "layers525-650CYLINDER44Updated.pt"),
     ("Cylinder47", DATA_DIR / "layers525-650CYLINDER47Updated.pt"),
 ]
 
 testingDataFile = DATA_DIR / "layers525-650CYLINDER10Updated.pt"
 
-RESUME_CHECKPOINT = None
-RESUME_EPOCH = 0
+RESUME_CHECKPOINT = DATA_DIR / "checkpoint_epoch200EvenMoreAugmentation.pt"
+RESUME_EPOCH = 200
 
 # ==========================================================
 # INPUT CHANNEL SELECTION
@@ -246,7 +249,7 @@ print(f"Computed pos_weight: "
       f"{pos_weight.item():.2f}")
 
 
-crit = DiceBCELoss(pos_weight=pos_weight, dice_weight=4, bce_weight=1.0)
+crit = DiceBCELoss(pos_weight=pos_weight, dice_weight=1.5, bce_weight=1.0)
 
 
 optim = torch.optim.Adam(model.parameters(),lr=LEARNING_RATE)
