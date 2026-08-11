@@ -4,17 +4,17 @@ import torch.nn.functional as F
 
 
 class Convs3D(nn.Module):
-
     def __init__(self, inChannels, outChannels):
         super().__init__()
 
         self.conv1 = nn.Conv3d(inChannels, outChannels, kernel_size=3, stride=1, padding=1)
 
-        self.bn1 = nn.GroupNorm(outChannels)
+        self.bn1 = nn.GroupNorm(max(1, outChannels // 8),outChannels)
 
         self.conv2 = nn.Conv3d(outChannels, outChannels, kernel_size=3, stride=1, padding=1)
 
-        self.bn2 = nn.GroupNorm(outChannels)
+        self.bn2 = nn.GroupNorm(max(1, outChannels // 8),outChannels)
+    
 
     def forward(self, image):
         image = F.relu(self.bn1(self.conv1(image)))
