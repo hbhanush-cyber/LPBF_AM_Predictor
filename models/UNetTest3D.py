@@ -151,9 +151,7 @@ RESUME_EPOCH = 0
 
 INPUT_CHANNELS = [
     0,
-    1,
-    3,
-    4,
+    1
 ]
 
 import gc
@@ -179,14 +177,10 @@ test_loader = DataLoader(testData,batch_size=BATCH_SIZE,shuffle=False,num_worker
 
 
 
-model = uNet3D(4, 1, depth=WINDOW).to(device)
+model = uNet3D(2, 1, depth=WINDOW).to(device)
 
 print("\nModel created.")
 
-
-# ==========================================================
-# RESUME FROM CHECKPOINT
-# ==========================================================
 
 if RESUME_CHECKPOINT is not None:
 
@@ -249,10 +243,10 @@ print(f"Computed pos_weight: "
       f"{pos_weight.item():.2f}")
 
 
-crit = DiceBCELoss(pos_weight=pos_weight, dice_weight=1.5, bce_weight=1.0)
+crit = DiceBCELoss(pos_weight=pos_weight, dice_weight=2.0, bce_weight=1.0)
 
 
-optim = torch.optim.AdamW(model.parameters(),lr=LEARNING_RATE)
+optim = torch.optim.AdamW(model.parameters(),lr=LEARNING_RATE,weight_decay=1e-4)
 
 if device.type == "cuda":
     scaler = torch.amp.GradScaler("cuda")
