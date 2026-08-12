@@ -130,8 +130,8 @@ training_files = [
 
 testingDataFile = DATA_DIR / "layers525-650CYLINDER10Updated.pt"
 
-RESUME_CHECKPOINT = DATA_DIR / "checkpoint_epoch50NewChanges.pt"
-RESUME_EPOCH = 50
+RESUME_CHECKPOINT = None
+RESUME_EPOCH = 0
 
 # ==========================================================
 # INPUT CHANNEL SELECTION
@@ -243,7 +243,7 @@ print(f"Computed pos_weight: "
       f"{pos_weight.item():.2f}")
 
 
-crit = DiceBCELoss(pos_weight=pos_weight, dice_weight=2.0, bce_weight=1.0)
+crit = DiceBCELoss(pos_weight=pos_weight, dice_weight=1.0, bce_weight=1.0)
 
 
 optim = torch.optim.AdamW(model.parameters(),lr=LEARNING_RATE,weight_decay=1e-4)
