@@ -9,11 +9,11 @@ class Convs3D(nn.Module):
 
         self.conv1 = nn.Conv3d(inChannels, outChannels, kernel_size=3, stride=1, padding=1)
 
-        self.bn1 = nn.GroupNorm(max(1, outChannels // 8),outChannels)
+        self.bn1 = nn.BatchNorm3d(outChannels)
 
         self.conv2 = nn.Conv3d(outChannels, outChannels, kernel_size=3, stride=1, padding=1)
 
-        self.bn2 = nn.GroupNorm(max(1, outChannels // 8),outChannels)
+        self.bn2 = nn.BatchNorm3d(outChannels)
     
 
     def forward(self, image):
