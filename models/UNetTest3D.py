@@ -168,12 +168,7 @@ for _, file in training_files:
 
     del raw
 
-GLOBAL_MEAN = global_sum / global_count
-GLOBAL_VAR = global_sum_sq / global_count - GLOBAL_MEAN ** 2
-GLOBAL_STD = torch.sqrt(torch.clamp(GLOBAL_VAR, min=1e-12))
 
-print("Global mean:", GLOBAL_MEAN)
-print("Global std:", GLOBAL_STD)
 import gc
 
 
@@ -231,7 +226,7 @@ for _, file in training_files:
 
     raw = torch.load(file, map_location="cpu")
 
-    dataset = CylinderDataset3D(raw, window=WINDOW, augment=True, max_shift=MAX_SHIFT, input_channels=INPUT_CHANNELS, mean=GLOBAL_MEAN, std=GLOBAL_STD)
+    dataset = CylinderDataset3D(raw, window=WINDOW, augment=True, max_shift=MAX_SHIFT, input_channels=INPUT_CHANNELS)
 
     for label in dataset.Y:
         total_pos += label.sum().item()
