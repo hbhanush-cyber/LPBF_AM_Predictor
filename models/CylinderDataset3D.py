@@ -1,4 +1,3 @@
-
 import random
 import torch
 import torch.nn.functional as F
@@ -70,6 +69,7 @@ class CylinderDataset3D(Dataset):
             x[..., y:y + s, x0:x0 + s] = 0
 
         return x
+
     def shift_tensor(self, x, dx, dy, fill=0.0):
 
         H = x.shape[-2]
