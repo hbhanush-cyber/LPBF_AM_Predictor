@@ -109,7 +109,7 @@ else:
 training_files = [
     ("Cylinder2", DATA_DIR / "layers525-650CYLINDER2Updated.pt"),
     ("Cylinder3", DATA_DIR / "layers525-650CYLINDER3Updated.pt"),
-    ("Cylinder4", DATA_DIR / "layers525-650CYLINDER4Updated.pt"),
+    #("Cylinder4", DATA_DIR / "layers525-650CYLINDER4Updated.pt"),
     ("Cylinder5", DATA_DIR / "layers525-650CYLINDER5Updated.pt"),
     ("Cylinder6", DATA_DIR / "layers525-650CYLINDER6Updated.pt"),
     ("Cylinder7", DATA_DIR / "layers525-650CYLINDER7Updated.pt"),
@@ -128,10 +128,8 @@ training_files = [
     ("Cylinder47", DATA_DIR / "layers525-650CYLINDER47Updated.pt"),
 ]
 
-testingDataFile = DATA_DIR / "layers525-650CYLINDER10Updated.pt"
-
-RESUME_CHECKPOINT = DATA_DIR / "checkpoint_epoch100AdamWABatchNorm.pt"
-RESUME_EPOCH = 100
+RESUME_CHECKPOINT = None
+RESUME_EPOCH = 0
 
 # ==========================================================
 # INPUT CHANNEL SELECTION
@@ -153,13 +151,33 @@ INPUT_CHANNELS = [
     0,
     1
 ]
+print("\nComputing global normalization...")
 
+global_sum = torch.zeros(len(INPUT_CHANNELS))
+global_sum_sq = torch.zeros(len(INPUT_CHANNELS))
+global_count = 0
+
+for _, file in training_files:
+    raw = torch.load(file, map_location="cpu")
+
+    for img in raw["X"]:
+        img = img[INPUT_CHANNELS].float()
+        global_sum += img.sum(dim=(1, 2))
+        global_sum_sq += (img ** 2).sum(dim=(1, 2))
+        global_count += img.shape[1] * img.shape[2]
+
+    del raw
+
+GLOBAL_MEAN = global_sum / global_count
+GLOBAL_VAR = global_sum_sq / global_count - GLOBAL_MEAN ** 2
+GLOBAL_STD = torch.sqrt(torch.clamp(GLOBAL_VAR, min=1e-12))
+
+print("Global mean:", GLOBAL_MEAN)
+print("Global std:", GLOBAL_STD)
 import gc
 
 print("\nLoading test dataset...")
 
-rawTestData = torch.load(testingDataFile, map_location="cpu")
-testData = CylinderDataset3D(rawTestData, window=WINDOW, augment=False, input_channels=INPUT_CHANNELS)
 del rawTestData
 gc.collect()
 
@@ -169,11 +187,6 @@ loader_kwargs = {
     "pin_memory": device.type == "cuda",
     "persistent_workers": False
 }
-
-test_loader = DataLoader(testData, shuffle=False, **loader_kwargs)
-
-
-test_loader = DataLoader(testData,batch_size=BATCH_SIZE,shuffle=False,num_workers=NUM_WORKERS,pin_memory=(device.type == "cuda"),persistent_workers=(NUM_WORKERS > 0))
 
 
 
@@ -219,7 +232,7 @@ for _, file in training_files:
 
     raw = torch.load(file, map_location="cpu")
 
-    dataset = CylinderDataset3D(raw, window=WINDOW, augment=False, input_channels=INPUT_CHANNELS)
+    dataset = CylinderDataset3D(raw, window=WINDOW, augment=True, max_shift=MAX_SHIFT, input_channels=INPUT_CHANNELS, mean=GLOBAL_MEAN, std=GLOBAL_STD)
 
     for label in dataset.Y:
         total_pos += label.sum().item()
@@ -505,179 +518,3 @@ print(
     f"{final_model_path}"
 
 )
-
-# ==========================================================
-# FINAL TEST EVALUATION
-#
-# No augmentation is applied to test data.
-# ==========================================================
-
-print("\n" + "=" * 60)
-
-print("FINAL TEST EVALUATION")
-
-print("=" * 60)
-
-model.eval()
-
-test_loss_total = 0.0
-
-test_batches = 0
-
-with torch.no_grad():
-    for (testImages, testLabels) in test_loader:
-
-        testImages = testImages.to(
-
-            device,
-
-            non_blocking=(device.type == "cuda")
-
-        )
-
-        testLabels = testLabels.to(
-
-            device,
-
-            non_blocking=(device.type == "cuda")
-
-        )
-
-        # --------------------------------------
-        # FORWARD PASS
-        # --------------------------------------
-
-        if device.type == "cuda":
-
-            with torch.amp.autocast(
-
-                    device_type="cuda",
-
-                    dtype=torch.float16
-
-            ):
-
-                labelVal = model(testImages)
-
-                lossTest = crit(
-
-                    labelVal,
-
-                    testLabels
-
-                )
-
-        else:
-
-            labelVal = model(
-
-                testImages
-
-            )
-
-            lossTest = crit(
-
-                labelVal,
-
-                testLabels
-
-            )
-
-        test_loss_total += (
-
-            lossTest.item()
-
-        )
-
-        test_batches += 1
-
-# ==========================================================
-# TEST LOSS
-# ==========================================================
-
-if test_batches > 0:
-
-    average_test_loss = (
-
-            test_loss_total / test_batches
-
-    )
-
-else:
-
-    average_test_loss = 0.0
-
-print(
-
-    f"Test loss: "
-    f"{average_test_loss:.6f}"
-
-)
-
-# ==========================================================
-# TRAINING SUMMARY
-# ==========================================================
-
-print("\n" + "=" * 60)
-
-print("TRAINING SUMMARY")
-
-print("=" * 60)
-
-print(
-
-    f"Epochs trained: "
-    f"{EPOCHS}"
-
-)
-
-print(
-
-    f"Window size: "
-    f"{WINDOW}"
-
-)
-
-print(
-
-    f"Maximum training shift: "
-    f"{MAX_SHIFT} pixels"
-
-)
-
-print(
-
-    f"Batch size: "
-    f"{BATCH_SIZE}"
-
-)
-
-print(
-
-    f"Learning rate: "
-    f"{LEARNING_RATE}"
-
-)
-
-print(
-
-    f"Final training loss: "
-    f"{trainLoss[-1]:.6f}"
-
-)
-
-print(
-
-    f"Final test loss: "
-    f"{average_test_loss:.6f}"
-
-)
-
-print(
-
-    f"Final model: "
-    f"{final_model_path}"
-
-)
-
-print("=" * 60)
