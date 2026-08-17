@@ -130,8 +130,8 @@ training_files = [
 
 testingDataFile = DATA_DIR / "layers525-650CYLINDER10Updated.pt"
 
-RESUME_CHECKPOINT = None
-RESUME_EPOCH = 0
+RESUME_CHECKPOINT = DATA_DIR / "checkpoint_epoch100AdamWABatchNorm"
+RESUME_EPOCH = 100
 
 # ==========================================================
 # INPUT CHANNEL SELECTION
