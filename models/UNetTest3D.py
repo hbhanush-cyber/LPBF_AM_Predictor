@@ -176,9 +176,8 @@ print("Global mean:", GLOBAL_MEAN)
 print("Global std:", GLOBAL_STD)
 import gc
 
-print("\nLoading test dataset...")
 
-del rawTestData
+
 gc.collect()
 
 loader_kwargs = {
