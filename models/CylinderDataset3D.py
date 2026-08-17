@@ -16,17 +16,15 @@ class CylinderDataset3D(Dataset):
         self.Y = []
 
         # per-cylinder, per-channel normalization stats
-        chans = self.input_channels if self.input_channels is not None else slice(None)
-        stacked = torch.stack([img[chans].float() for img in dataset["X"]])
-        mean = stacked.mean(dim=(0, 2, 3), keepdim=True)[0]
-        std = stacked.std(dim=(0, 2, 3), keepdim=True)[0] + 1e-6
+        mean = mean.float()
+        std = std.float() + 1e-6
 
         for image, label in zip(dataset["X"], dataset["Y"]):
 
             if self.input_channels is not None:
                 image = image[self.input_channels]
 
-            image = (image.float() - mean) / std
+            image = (image.float() - mean[:, None, None]) / std[:, None, None]
 
             h, w = image.shape[1:]
 
