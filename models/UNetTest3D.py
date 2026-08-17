@@ -87,11 +87,11 @@ MAX_SHIFT = 80
 
 EPOCHS = 800
 
-LEARNING_RATE = 1e-4
+LEARNING_RATE = 2e-4
 
 NUM_WORKERS = 2
 
-CHECKPOINT_INTERVAL = 50
+CHECKPOINT_INTERVAL = 25
 
 # ==========================================================
 # DATA DIRECTORY
