@@ -7,7 +7,7 @@ from torch.utils.data import Dataset
 
 class CylinderDataset3D(Dataset):
 
-    def __init__(self, dataset, window=10, augment=False, max_shift=10, input_channels=None, mean=None, std=None):
+    def __init__(self, dataset, window=10, augment=False, max_shift=10, input_channels=None):
         self.window = window
         self.augment = augment
         self.max_shift = max_shift
@@ -15,22 +15,18 @@ class CylinderDataset3D(Dataset):
         self.X = []
         self.Y = []
 
+        # per-cylinder, per-channel normalization stats
         chans = self.input_channels if self.input_channels is not None else slice(None)
-
-        if mean is None or std is None:
-            stacked = torch.stack([img[chans].float() for img in dataset["X"]])
-            mean = stacked.mean(dim=(0, 2, 3), keepdim=True)[0]
-            std = stacked.std(dim=(0, 2, 3), keepdim=True)[0] + 1e-6
-        else:
-            mean = mean.float()
-            std = std.float() + 1e-6
+        stacked = torch.stack([img[chans].float() for img in dataset["X"]])
+        mean = stacked.mean(dim=(0, 2, 3), keepdim=True)[0]
+        std = stacked.std(dim=(0, 2, 3), keepdim=True)[0] + 1e-6
 
         for image, label in zip(dataset["X"], dataset["Y"]):
 
             if self.input_channels is not None:
                 image = image[self.input_channels]
 
-            image = (image.float() - mean[:, None, None]) / std[:, None, None]
+            image = (image.float() - mean) / std
 
             h, w = image.shape[1:]
 
