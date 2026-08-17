@@ -7,7 +7,8 @@ from torch.utils.data import Dataset
 
 class CylinderDataset3D(Dataset):
 
-    def __init__(self, dataset, window=10, augment=False, max_shift=10, input_channels=None):
+    def __init__(self, dataset, window=10, augment=False, max_shift=10,
+             input_channels=None, mean=None, std=None):
         self.window = window
         self.augment = augment
         self.max_shift = max_shift
