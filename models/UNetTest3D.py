@@ -130,7 +130,7 @@ training_files = [
 
 testingDataFile = DATA_DIR / "layers525-650CYLINDER10Updated.pt"
 
-RESUME_CHECKPOINT = DATA_DIR / "checkpoint_epoch100AdamWABatchNorm"
+RESUME_CHECKPOINT = DATA_DIR / "checkpoint_epoch100AdamWABatchNorm.pt"
 RESUME_EPOCH = 100
 
 # ==========================================================
