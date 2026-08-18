@@ -128,8 +128,8 @@ training_files = [
     ("Cylinder47", DATA_DIR / "layers525-650CYLINDER47Updated.pt"),
 ]
 
-RESUME_CHECKPOINT = DATA_DIR / "checkpoint_epoch300AdamWBatchNormDice.pt"
-RESUME_EPOCH = 300
+RESUME_CHECKPOINT = DATA_DIR / "checkpoint_epoch400AdamWBatchNormDice.pt"
+RESUME_EPOCH = 400
 
 # ==========================================================
 # INPUT CHANNEL SELECTION
