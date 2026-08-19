@@ -87,11 +87,11 @@ MAX_SHIFT = 80
 
 EPOCHS = 800
 
-LEARNING_RATE = 2e-4
+LEARNING_RATE = 1e-4
 
 NUM_WORKERS = 2
 
-CHECKPOINT_INTERVAL = 25
+CHECKPOINT_INTERVAL = 50
 
 # ==========================================================
 # DATA DIRECTORY
@@ -107,9 +107,10 @@ else:
 
 
 training_files = [
+    ("Cylinder8", DATA_DIR / "layers525-650CYLINDER8Updated.pt"),
     ("Cylinder2", DATA_DIR / "layers525-650CYLINDER2Updated.pt"),
     ("Cylinder3", DATA_DIR / "layers525-650CYLINDER3Updated.pt"),
-    #("Cylinder4", DATA_DIR / "layers525-650CYLINDER4Updated.pt"),
+    ("Cylinder4", DATA_DIR / "layers525-650CYLINDER4Updated.pt"),
     ("Cylinder5", DATA_DIR / "layers525-650CYLINDER5Updated.pt"),
     ("Cylinder6", DATA_DIR / "layers525-650CYLINDER6Updated.pt"),
     ("Cylinder7", DATA_DIR / "layers525-650CYLINDER7Updated.pt"),
@@ -119,17 +120,20 @@ training_files = [
     ("Cylinder13", DATA_DIR / "layers525-650CYLINDER13Updated.pt"),
     ("Cylinder14", DATA_DIR / "layers525-650CYLINDER14Updated.pt"),
     ("Cylinder15", DATA_DIR / "layers525-650CYLINDER15Updated.pt"),
+    ("Cylinder16", DATA_DIR / "layers525-650CYLINDER16Updated.pt"),
     ("Cylinder18", DATA_DIR / "layers525-650CYLINDER18Updated.pt"),
     ("Cylinder19", DATA_DIR / "layers525-650CYLINDER19Updated.pt"),
+    ("Cylinder24", DATA_DIR / "layers525-650CYLINDER24Updated.pt"),   
     ("Cylinder26", DATA_DIR / "layers525-650CYLINDER26Updated.pt"),
     ("Cylinder27", DATA_DIR / "layers525-650CYLINDER27Updated.pt"),
     ("Cylinder28", DATA_DIR / "layers525-650CYLINDER28Updated.pt"),
+    ("Cylinder40", DATA_DIR / "layers525-650CYLINDER40Updated.pt"),
     ("Cylinder44", DATA_DIR / "layers525-650CYLINDER44Updated.pt"),
     ("Cylinder47", DATA_DIR / "layers525-650CYLINDER47Updated.pt"),
 ]
 
-RESUME_CHECKPOINT = DATA_DIR / "checkpoint_epoch400AdamWBatchNormDice.pt"
-RESUME_EPOCH = 400
+RESUME_CHECKPOINT = None
+RESUME_EPOCH = 0
 
 # ==========================================================
 # INPUT CHANNEL SELECTION
@@ -168,11 +172,17 @@ for _, file in training_files:
 
     del raw
 
+GLOBAL_MEAN = global_sum / global_count
+GLOBAL_VAR = global_sum_sq / global_count - GLOBAL_MEAN ** 2
+GLOBAL_STD = torch.sqrt(torch.clamp(GLOBAL_VAR, min=1e-12))
 
+print("Global mean:", GLOBAL_MEAN)
+print("Global std:", GLOBAL_STD)
 import gc
 
+print("\nLoading test dataset...")
 
-
+del rawTestData
 gc.collect()
 
 loader_kwargs = {
@@ -226,7 +236,7 @@ for _, file in training_files:
 
     raw = torch.load(file, map_location="cpu")
 
-    dataset = CylinderDataset3D(raw, window=WINDOW, augment=True, max_shift=MAX_SHIFT, input_channels=INPUT_CHANNELS)
+    dataset = CylinderDataset3D(raw, window=WINDOW, augment=True, max_shift=MAX_SHIFT, input_channels=INPUT_CHANNELS, mean=GLOBAL_MEAN, std=GLOBAL_STD)
 
     for label in dataset.Y:
         total_pos += label.sum().item()
@@ -250,7 +260,7 @@ print(f"Computed pos_weight: "
       f"{pos_weight.item():.2f}")
 
 
-crit = DiceBCELoss(pos_weight=pos_weight, dice_weight=1.0, bce_weight=1.0)
+crit = DiceBCELoss(pos_weight=pos_weight, dice_weight=0.0, bce_weight=1.0)
 
 
 optim = torch.optim.AdamW(model.parameters(),lr=LEARNING_RATE,weight_decay=1e-4)
